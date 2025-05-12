@@ -5,7 +5,7 @@ export const UserContext = createContext();
 
 // Crea el hook useUser
 export const useUser = () => {
-  return useContext(UserContext);  // Esto te dará acceso al estado de usuario y las funciones de login/logout
+  return useContext(UserContext); 
 };
 
 export const UserProvider = ({ children }) => {

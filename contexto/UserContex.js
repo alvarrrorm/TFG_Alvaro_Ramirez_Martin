@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const UserContext = createContext();
 
-// Crea el hook useUser
+
 export const useUser = () => {
   return useContext(UserContext); 
 };

@@ -3,45 +3,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const UserContext = createContext();
 
-// Crea el hook useUser
 export const useUser = () => {
-  return useContext(UserContext); 
+  return useContext(UserContext);
 };
 
 export const UserProvider = ({ children }) => {
-  const [usuario, setUsuario] = useState(null);  // Información del usuario (nombre y dni)
-  const [dni, setDni] = useState(null);  // Almacenamos el DNI aparte
+  const [userData, setUserData] = useState({
+    usuario: null,
+    dni: null,
+    rol: null
+  });
 
   useEffect(() => {
     const loadUser = async () => {
-      const savedUser = await AsyncStorage.getItem('usuario');
-      const savedDni = await AsyncStorage.getItem('dni');
-      if (savedUser && savedDni) {
-        setUsuario(savedUser);
-        setDni(savedDni);
+      try {
+        const savedUser = await AsyncStorage.getItem('userData');
+        if (savedUser) {
+          setUserData(JSON.parse(savedUser));
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
       }
     };
     loadUser();
   }, []);
+  
+const login = async (nombre, dni, rol) => {
+  const userData = { nombre, dni, rol };
+  setUserData(userData);
+  await AsyncStorage.setItem('userData', JSON.stringify(userData));
+};
 
-  // Función para hacer login, almacenando nombre y dni
-  const login = async (usuarioNombre, usuarioDni) => {
-    setUsuario(usuarioNombre);
-    setDni(usuarioDni);
-    await AsyncStorage.setItem('usuario', usuarioNombre);
-    await AsyncStorage.setItem('dni', usuarioDni);
-  };
-
-  // Función para hacer logout, eliminando nombre y dni
   const logout = async () => {
-    setUsuario(null);
-    setDni(null);
-    await AsyncStorage.removeItem('usuario');
-    await AsyncStorage.removeItem('dni');
+    setUserData({ usuario: null, dni: null, rol: null });
+    await AsyncStorage.removeItem('userData');
   };
 
   return (
-    <UserContext.Provider value={{ usuario, dni, login, logout }}>
+    <UserContext.Provider value={{ ...userData, login, logout }}>
       {children}
     </UserContext.Provider>
   );

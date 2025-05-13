@@ -1,78 +1,102 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useUser } from '../contexto/UserContex';
 
 export default function Login({ navigation }) {
-  const [usuario, setUsuario] = useState('');
-  const [pass, setPass] = useState('');
-  const [mensajeError, setMensajeError] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useUser();
 
   const handleLogin = async () => {
-    if (!usuario || !pass) {
-      setMensajeError('Por favor, completa todos los campos');
+    if (!username.trim() || !password.trim()) {
+      setError('Por favor, completa todos los campos');
       return;
     }
+
+    setIsLoading(true);
+    setError('');
 
     try {
       const response = await fetch('http://localhost:3001/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario, pass })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          usuario: username,
+          pass: password
+        }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Guardar el usuario en AsyncStorage
-        await AsyncStorage.setItem('usuario', JSON.stringify({ usuario }));
-
-        setMensajeError('');
-        Alert.alert('Bienvenido', 'Inicio de sesión exitoso');
-
-        // Navegar a la pantalla de reservas
-        navigation.navigate('Reservas');
-      } else {
-        // Mostrar error si la respuesta no es exitosa
-        setMensajeError(data.error || 'Usuario o contraseña incorrectos');
+      if (!response.ok) {
+        throw new Error(data.error || 'Credenciales incorrectas');
       }
-    } catch (error) {
-      console.error(error);
-      setMensajeError('No se pudo conectar con el servidor');
+
+      // Extraemos los datos del usuario desde la respuesta
+      const { nombre, dni, rol } = data.userData;
+      
+      if (!nombre || !rol) {
+        throw new Error('Datos de usuario incompletos');
+      }
+
+      login(nombre, dni || '', rol);
+      Alert.alert('Bienvenido', `Has iniciado sesión como ${rol === 'admin' ? 'Administrador' : 'Usuario'}`);
+      navigation.navigate('Reservas');
+      
+    } catch (err) {
+      console.error('Error en login:', err);
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Iniciar sesión</Text>
+      <Text style={styles.title}>Iniciar sesión</Text>
+      
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {mensajeError !== '' && <Text style={styles.errorText}>{mensajeError}</Text>}
+      <TextInput
+        style={styles.input}
+        placeholder="Usuario"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+        editable={!isLoading}
+      />
 
-        <TextInput
-          placeholder="Nombre de usuario"
-          style={styles.input}
-          value={usuario}
-          onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}s
-        />
-        <TextInput
-          placeholder="Contraseña"
-          secureTextEntry
-          style={styles.input}
-          value={pass}
-          onChangeText={(text) => { setPass(text); setMensajeError(''); }}
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Contraseña"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+        editable={!isLoading}
+      />
 
-        <TouchableOpacity style={[styles.button, styles.shadow]} onPress={handleLogin}>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#007bff" />
+      ) : (
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
+      )}
 
-        <Text style={styles.registerText}>
-          ¿No tienes cuenta?{' '}
-          <Text onPress={() => navigation.navigate('Registro')} style={styles.link}>
-            Regístrate aquí
-          </Text>
-        </Text>
-      </View>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('Registro')}
+        disabled={isLoading}
+      >
+        <Text style={styles.registerText}>¿No tienes cuenta? Regístrate</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -80,76 +104,49 @@ export default function Login({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 60,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: 600,
-    backgroundColor: '#FFFFFF',
-    padding: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
+    padding: 20,
+    backgroundColor: '#f5f5f5'
   },
   title: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 30,
-    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center'
   },
   input: {
-    width: '100%',
+    height: 50,
+    borderColor: '#ddd',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-    fontSize: 16,
-    backgroundColor: '#F9FAFB',
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    fontSize: 16
   },
   button: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    marginTop: 10,
-    width: '100%',
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-  },
-  shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    marginTop: 10,
+    elevation: 3
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: 'white',
     fontWeight: '600',
+    fontSize: 16
+  },
+  error: {
+    color: 'red',
+    marginBottom: 15,
+    textAlign: 'center',
+    fontWeight: '500'
   },
   registerText: {
     marginTop: 20,
-    fontSize: 16,
-    color: '#6B7280',
     textAlign: 'center',
-  },
-  link: {
-    color: '#3B82F6',
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+    color: '#007bff',
+    fontSize: 15
+  }
 });

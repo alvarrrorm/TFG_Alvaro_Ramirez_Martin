@@ -112,11 +112,8 @@ const styles = StyleSheet.create({
     minWidth: 180,
   },
   shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+    elevation: 5, 
   },
   buttonText: {
     color: '#FFFFFF',

@@ -1,3 +1,4 @@
+// rutas/registro.js
 const express = require('express');
 const bcrypt = require('bcrypt');
 const router = express.Router();
@@ -22,7 +23,6 @@ router.post('/', async (req, res) => {
   const conexion = req.app.get('conexion');
   const { nombre, correo, usuario, dni, pass, pass_2, clave_admin } = req.body;
 
-  // Validación de campos
   if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
     return res.status(400).json({ error: 'Por favor, rellena todos los campos' });
   }
@@ -38,25 +38,54 @@ router.post('/', async (req, res) => {
   const rol = clave_admin === CLAVE_ADMIN ? 'admin' : 'usuario';
 
   try {
-    const hashedPass = await bcrypt.hash(pass, 10);
-    const sql = 'INSERT INTO usuarios (nombre, correo, usuario, dni, pass, rol) VALUES (?, ?, ?, ?, ?, ?)';
-    const valores = [nombre, correo, usuario, dni, hashedPass, rol];
-
-    conexion.query(sql, valores, (err, result) => {
+    // Verifica si DNI ya existe
+    conexion.query('SELECT id FROM usuarios WHERE dni = ?', [dni], async (err, resultados) => {
       if (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-          return res.status(400).json({ error: 'Usuario o DNI ya registrados' });
-        }
-        console.error('Error al insertar el usuario:', err);
-        return res.status(500).json({ error: 'Error al registrar el usuario' });
+        console.error('Error al comprobar DNI:', err);
+        return res.status(500).json({ error: 'Error al comprobar el DNI' });
+      }
+      if (resultados.length > 0) {
+        return res.status(400).json({ error: 'El DNI ya está registrado' });
       }
 
+      // Verifica si correo ya existe
+      conexion.query('SELECT id FROM usuarios WHERE correo = ?', [correo], async (err, resultados) => {
+        if (err) {
+          console.error('Error al comprobar correo:', err);
+          return res.status(500).json({ error: 'Error al comprobar el correo' });
+        }
+        if (resultados.length > 0) {
+          return res.status(400).json({ error: 'El correo ya está registrado' });
+        }
 
-      res.json({ mensaje: `Usuario registrado correctamente como ${rol}` });
+        // Verifica si nombre de usuario ya existe
+        conexion.query('SELECT id FROM usuarios WHERE usuario = ?', [usuario], async (err, resultados) => {
+          if (err) {
+            console.error('Error al comprobar usuario:', err);
+            return res.status(500).json({ error: 'Error al comprobar el nombre de usuario' });
+          }
+          if (resultados.length > 0) {
+            return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
+          }
+
+          // Encriptar y registrar
+          const hashedPass = await bcrypt.hash(pass, 10);
+          const sql = 'INSERT INTO usuarios (nombre, correo, usuario, dni, pass, rol) VALUES (?, ?, ?, ?, ?, ?)';
+          const valores = [nombre, correo, usuario, dni, hashedPass, rol];
+
+          conexion.query(sql, valores, (err) => {
+            if (err) {
+              console.error('Error al registrar usuario:', err);
+              return res.status(500).json({ error: 'Error al registrar el usuario' });
+            }
+
+            res.json({ mensaje: `Usuario registrado correctamente como ${rol}` });
+          });
+        });
+      });
     });
-
   } catch (error) {
-    console.error('Error al encriptar la contraseña:', error);
+    console.error('Error general en el registro:', error);
     res.status(500).json({ error: 'Error interno al registrar el usuario' });
   }
 });

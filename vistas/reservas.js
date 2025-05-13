@@ -3,31 +3,37 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { useUser } from '../contexto/UserContex';
 
 export default function Reservas({ navigation }) {
-  const { usuario } = useUser();
+  const { usuario, rol, logout } = useUser();
+
+  console.log("Datos del contexto - Usuario:", usuario, "Rol:", rol); // Para depuración
 
   return (
     <SafeAreaView style={styles.container}>
-   
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity onPress={logout}>
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
         <Text style={styles.title}>Área de reservas</Text>
-
-        {usuario && (
-          <Text style={styles.username}>Hola, {usuario} 👋</Text>
+        <Text style={styles.username}>Hola, {usuario || 'invitado'} 👋</Text>
+        <Text style={styles.userRole}>Rol: {rol || ''}</Text>
+        
+        {rol === 'admin' && (
+          <TouchableOpacity
+            style={[styles.button, styles.adminButton]}
+            onPress={() => navigation.navigate('Admin')}
+          >
+            <Text style={styles.buttonText}>Ir a administración</Text>
+          </TouchableOpacity>
         )}
 
-        <Text style={styles.subtitle}>
-          Aquí podrás reservar pistas deportivas o apuntarte a la ludoteca del polideportivo. ¡Nos alegra tenerte aquí!
-        </Text>
-
-        
-        <TouchableOpacity style={styles.reserveButton} onPress={() => navigation.navigate('NuevaReserva')}>
-          <Text style={styles.reserveButtonText}>Hacer nueva reserva</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.reserveButton]}
+          onPress={() => navigation.navigate('NuevaReserva')}
+        >
+          <Text style={styles.buttonText}>Hacer nueva reserva</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -65,22 +71,31 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
     color: '#3B82F6',
-    marginBottom: 20,
+    marginBottom: 10,
   },
-  subtitle: {
+  userRole: {
     fontSize: 16,
-    color: '#4B5563',
-    textAlign: 'center',
-    marginBottom: 40,
+    color: '#64748B',
+    marginBottom: 20,
+    fontStyle: 'italic',
   },
-  reserveButton: {
-    backgroundColor: '#3b82f6',
+  button: {
     paddingVertical: 14,
     paddingHorizontal: 30,
     borderRadius: 12,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  reserveButton: {
+    backgroundColor: '#3B82F6',
     elevation: 3,
   },
-  reserveButtonText: {
+  adminButton: {
+    backgroundColor: '#10B981',
+    elevation: 3,
+  },
+  buttonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',

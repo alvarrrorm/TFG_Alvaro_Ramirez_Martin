@@ -8,6 +8,7 @@ export default function Register({ navigation }) {
   const [dni, setDni] = useState('');
   const [pass, setPass] = useState('');
   const [pass_2, setPass2] = useState('');
+  const [claveAdmin, setClaveAdmin] = useState('');
   const [mensajeError, setMensajeError] = useState('');
 
   const handleRegister = async () => {
@@ -25,7 +26,7 @@ export default function Register({ navigation }) {
       const response = await fetch('http://localhost:3001/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2 })
+        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, clave_admin: claveAdmin })
       });
 
       const data = await response.json();
@@ -88,6 +89,12 @@ export default function Register({ navigation }) {
           value={pass_2}
           onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
         />
+        <TextInput
+          placeholder="Clave de administrador (opcional)"
+          style={styles.input}
+          value={claveAdmin}
+          onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
+        />
 
         <TouchableOpacity style={[styles.button, styles.shadow]} onPress={handleRegister}>
           <Text style={styles.buttonText}>Registrarse</Text>
@@ -103,8 +110,6 @@ export default function Register({ navigation }) {
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {

@@ -3,23 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 
 export default function Inicio({ navigation }) {
-  const { usuario } = useUser(); 
+  const { usuario } = useUser();
 
   const handleReserva = () => {
     if (usuario) {
-      // Si el usuario está autenticado, navegar a Reservas
       navigation.navigate('Reservas');
     } else {
-      // Si no, redirigir a Login
       navigation.navigate('Login');
     }
   };
 
   return (
     <View style={styles.container}>
-
       <View style={styles.header}>
-        <Text style={styles.title}>Bienvenido a <Text style={styles.titleHighlight}>Depo</Text></Text>
+        <Text style={styles.title}>
+          Bienvenido a <Text style={styles.titleHighlight}>Depo</Text>
+        </Text>
 
         <View style={styles.buttonGroup}>
           <TouchableOpacity
@@ -36,6 +35,15 @@ export default function Inicio({ navigation }) {
             <Text style={styles.buttonText}>Registrarse</Text>
           </TouchableOpacity>
         </View>
+
+        {usuario?.rol === 'admin' && (
+          <TouchableOpacity
+            style={[styles.adminButton, styles.shadow]}
+            onPress={() => navigation.navigate('admin')}
+          >
+            <Text style={styles.buttonText}>Ir a administración</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -47,12 +55,11 @@ export default function Inicio({ navigation }) {
         </Text>
         <TouchableOpacity
           style={[styles.button, styles.shadow]}
-          onPress={handleReserva} // Llamar la función para manejar la reserva
+          onPress={handleReserva}
         >
           <Text style={styles.buttonText}>Reserva</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
@@ -78,13 +85,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   titleHighlight: {
-    color: '#3B82F6', // Azul bonito
+    color: '#3B82F6',
   },
   buttonGroup: {
     flexDirection: 'row',
     marginTop: 40,
     gap: 20,
-    justifyContent: 'center',  // Elimina flexWrap ya que solo hay dos botones
+    justifyContent: 'center',
   },
   button: {
     backgroundColor: '#3B82F6',
@@ -93,7 +100,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     minWidth: 180,
     alignItems: 'center',
-    elevation: 5,  // Para sombra en dispositivos Android
+    elevation: 5,
+  },
+  adminButton: {
+    backgroundColor: '#10B981', 
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    marginTop: 30,
+    alignItems: 'center',
+    minWidth: 180,
   },
   shadow: {
     shadowColor: '#000',
@@ -130,5 +146,6 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: '#4B5563',
     textAlign: 'center',
+    marginBottom: 30,
   },
 });

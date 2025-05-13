@@ -9,7 +9,7 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
-    usuario: null,
+    nombre: null,
     dni: null,
     rol: null
   });
@@ -27,20 +27,26 @@ export const UserProvider = ({ children }) => {
     };
     loadUser();
   }, []);
-  
-const login = async (nombre, dni, rol) => {
-  const userData = { nombre, dni, rol };
-  setUserData(userData);
-  await AsyncStorage.setItem('userData', JSON.stringify(userData));
-};
+
+  const login = async (nombre, dni, rol) => {
+    const newUserData = { nombre, dni, rol };
+    setUserData(newUserData);
+    await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+  };
 
   const logout = async () => {
-    setUserData({ usuario: null, dni: null, rol: null });
+    setUserData({ nombre: null, dni: null, rol: null });
     await AsyncStorage.removeItem('userData');
   };
 
   return (
-    <UserContext.Provider value={{ ...userData, login, logout }}>
+    <UserContext.Provider value={{
+      usuario: userData.nombre, 
+      dni: userData.dni,
+      rol: userData.rol,
+      login,
+      logout
+    }}>
       {children}
     </UserContext.Provider>
   );

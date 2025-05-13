@@ -23,7 +23,7 @@ export default function Reservas({ navigation }) {
         {rol === 'admin' && (
           <TouchableOpacity
             style={[styles.button, styles.adminButton]}
-            onPress={() => navigation.navigate('Admin')}
+            onPress={() => navigation.navigate('AdminPanel')}
           >
             <Text style={styles.buttonText}>Ir a administración</Text>
           </TouchableOpacity>

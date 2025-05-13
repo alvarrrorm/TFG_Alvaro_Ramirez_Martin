@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 
+
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -36,15 +37,10 @@ export default function Login({ navigation }) {
         throw new Error(data.error || 'Credenciales incorrectas');
       }
 
-      // Extraemos los datos del usuario desde la respuesta
-      const { nombre, dni, rol } = data.userData;
+      // Asegúrate que la respuesta del backend coincide con esto
+      login(data.userData.nombre, data.userData.dni || '', data.userData.rol);
       
-      if (!nombre || !rol) {
-        throw new Error('Datos de usuario incompletos');
-      }
-
-      login(nombre, dni || '', rol);
-      Alert.alert('Bienvenido', `Has iniciado sesión como ${rol === 'admin' ? 'Administrador' : 'Usuario'}`);
+      Alert.alert('Bienvenido', `Inicio de sesión exitoso como ${data.userData.rol}`);
       navigation.navigate('Reservas');
       
     } catch (err) {
@@ -130,7 +126,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
-    elevation: 3
+    elevation: 3,
+    // Para web:
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
   },
   buttonText: {
     color: 'white',

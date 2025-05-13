@@ -3,13 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, FlatList } from 'react
 import { useUser } from '../contexto/UserContex';
 
 export default function AdminPanel({ navigation }) {
-  const { usuarios, logout } = useUser();
-  const [pistas, setPistas] = useState([]);  // Estado para almacenar las pistas
-  const [reservas, setReservas] = useState([]);  // Estado para almacenar las reservas
+  const { usuario, logout } = useUser(); // Asegúrate de que es "usuario", no "usuarios"
+  const [pistas, setPistas] = useState([]);
+  const [reservas, setReservas] = useState([]);
 
-  // Simula obtener las pistas y las reservas de la base de datos (puedes cambiar esto por llamadas a una API)
   useEffect(() => {
-    // Aquí puedes agregar la lógica para obtener los datos de pistas y reservas
     setPistas([
       { id: 1, nombre: 'Pista 1', enMantenimiento: false },
       { id: 2, nombre: 'Pista 2', enMantenimiento: false },
@@ -21,7 +19,6 @@ export default function AdminPanel({ navigation }) {
     ]);
   }, []);
 
-  // Función para marcar una pista como en mantenimiento
   const marcarMantenimiento = (id) => {
     const updatedPistas = pistas.map(pista =>
       pista.id === id ? { ...pista, enMantenimiento: true } : pista
@@ -29,7 +26,6 @@ export default function AdminPanel({ navigation }) {
     setPistas(updatedPistas);
   };
 
-  // Función para eliminar una pista (simulación)
   const eliminarPista = (id) => {
     Alert.alert(
       'Eliminar pista',
@@ -37,14 +33,14 @@ export default function AdminPanel({ navigation }) {
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Eliminar', onPress: () => {
-          const updatedPistas = pistas.filter(pista => pista.id !== id);
-          setPistas(updatedPistas);
-        }},
+            const updatedPistas = pistas.filter(pista => pista.id !== id);
+            setPistas(updatedPistas);
+          }
+        },
       ]
     );
   };
 
-  // Función para ver detalles de una reserva
   const verDetallesReserva = (reserva) => {
     Alert.alert(
       'Detalles de reserva',
@@ -53,23 +49,22 @@ export default function AdminPanel({ navigation }) {
     );
   };
 
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Panel de Administración</Text>
-
-      {/* Mostrar nombre del administrador */}
-      <Text style={styles.username}>Hola, {usuarios.nombre} 👋</Text>
+      <Text style={styles.username}>Hola, {usuario.nombre} 👋</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Pistas</Text>
-
-        {/* Lista de pistas */}
         <FlatList
           data={pistas}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Text style={styles.itemText}>{item.nombre} {item.enMantenimiento && '(En mantenimiento)'}</Text>
+              <Text style={styles.itemText}>
+                {item.nombre} {item.enMantenimiento && '(En mantenimiento)'}
+              </Text>
               <TouchableOpacity onPress={() => marcarMantenimiento(item.id)} style={styles.button}>
                 <Text style={styles.buttonText}>Marcar mantenimiento</Text>
               </TouchableOpacity>
@@ -83,8 +78,6 @@ export default function AdminPanel({ navigation }) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Reservas</Text>
-
-        {/* Lista de reservas */}
         <FlatList
           data={reservas}
           keyExtractor={(item) => item.id.toString()}
@@ -99,7 +92,7 @@ export default function AdminPanel({ navigation }) {
         />
       </View>
 
-      <TouchableOpacity onPress={() => logout()} style={styles.logoutButton}>
+      <TouchableOpacity onPress={logout} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </View>
@@ -118,6 +111,12 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 30,
   },
   username: {
     fontSize: 22,

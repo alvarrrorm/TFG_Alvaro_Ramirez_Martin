@@ -18,7 +18,6 @@ export default function Reservas({ navigation }) {
       <View style={styles.content}>
         <Text style={styles.title}>Área de reservas</Text>
         <Text style={styles.username}>Hola, {usuario || 'invitado'} 👋</Text>
-        <Text style={styles.userRole}>Rol: {rol || ''}</Text>
         
         {rol === 'admin' && (
           <TouchableOpacity

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
   Alert,
   useWindowDimensions,
   ScrollView,
   SafeAreaView,
   Animated,
-  LayoutAnimation
+  Platform
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -18,22 +18,11 @@ export default function AdminPanel({ navigation }) {
   const { usuario, logout } = useUser();
   const [pistas, setPistas] = useState([]);
   const [reservas, setReservas] = useState([]);
-  const { width, height } = useWindowDimensions();
-  
-  const isSmallScreen = width < 600;
+  const { width } = useWindowDimensions();
+
+  const isWeb = width >= 768;
   const scrollY = useRef(new Animated.Value(0)).current;
-  const scrollViewRef = useRef(null);
-  const [contentHeight, setContentHeight] = useState(0);
-  const [layoutHeight, setLayoutHeight] = useState(0);
-
-  // Configuración del scroll indicator
-  const progressBarWidth = scrollY.interpolate({
-    inputRange: [0, Math.max(contentHeight - layoutHeight, 1)],
-    outputRange: ['0%', '100%'],
-    extrapolate: 'clamp'
-  });
-
-  const [showProgressBar, setShowProgressBar] = useState(false);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
   useEffect(() => {
     // Datos de ejemplo
@@ -41,27 +30,27 @@ export default function AdminPanel({ navigation }) {
       { id: 1, nombre: 'Pista Central', enMantenimiento: false, tipo: 'Tierra batida' },
       { id: 2, nombre: 'Pista Cubierta', enMantenimiento: false, tipo: 'Dura' },
       { id: 3, nombre: 'Pista Norte', enMantenimiento: true, tipo: 'Hierba' },
+      { id: 4, nombre: 'Pista Sur', enMantenimiento: false, tipo: 'Tierra batida' },
+      { id: 5, nombre: 'Pista Este', enMantenimiento: false, tipo: 'Dura' },
     ]);
 
     setReservas([
       { id: 1, usuario: 'Juan Pérez', pista: 'Pista Central', fecha: '2025-05-12 10:00', estado: 'confirmada' },
       { id: 2, usuario: 'Ana López', pista: 'Pista Cubierta', fecha: '2025-05-13 14:00', estado: 'pendiente' },
       { id: 3, usuario: 'Carlos Ruiz', pista: 'Pista Norte', fecha: '2025-05-14 16:30', estado: 'cancelada' },
+      { id: 4, usuario: 'María García', pista: 'Pista Sur', fecha: '2025-05-15 11:00', estado: 'confirmada' },
     ]);
-
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   }, []);
 
   const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } }}],
-    {
-      useNativeDriver: false,
-      listener: (event) => {
-        const currentScroll = event.nativeEvent.contentOffset.y;
-        setShowProgressBar(currentScroll > 10);
-      }
-    }
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
   );
+
+  const onContentSizeChange = (contentWidth, contentHeight) => {
+    // Mostrar indicador de scroll solo si el contenido es más alto que la pantalla
+    setShowScrollIndicator(contentHeight > width * 0.8); // Ajuste para web
+  };
 
   const marcarMantenimiento = (id) => {
     const updatedPistas = pistas.map(pista =>
@@ -76,8 +65,8 @@ export default function AdminPanel({ navigation }) {
       '¿Estás seguro de que deseas eliminar esta pista?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
+        {
+          text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
             const updatedPistas = pistas.filter(pista => pista.id !== id);
@@ -109,7 +98,8 @@ export default function AdminPanel({ navigation }) {
 
   const renderPistaItem = ({ item }) => (
     <View style={[
-      styles.item, 
+      styles.item,
+      isWeb ? styles.webItem : styles.mobileItem,
       item.enMantenimiento && styles.maintenanceItem
     ]}>
       <View style={styles.itemHeader}>
@@ -121,27 +111,27 @@ export default function AdminPanel({ navigation }) {
         )}
       </View>
       <Text style={styles.itemDetail}>Tipo: {item.tipo}</Text>
-      
-      <View style={styles.buttonGroup}>
-        <TouchableOpacity 
-          onPress={() => marcarMantenimiento(item.id)} 
+
+      <View style={[styles.buttonGroup, isWeb && styles.webButtonGroup]}>
+        <TouchableOpacity
+          onPress={() => marcarMantenimiento(item.id)}
           style={[
             styles.actionButton,
             item.enMantenimiento ? styles.successButton : styles.warningButton
           ]}
         >
-          <Ionicons 
-            name={item.enMantenimiento ? "checkmark-circle" : "construct"} 
-            size={16} 
-            color="white" 
+          <Ionicons
+            name={item.enMantenimiento ? "checkmark-circle" : "construct"}
+            size={16}
+            color="white"
           />
           <Text style={styles.actionButtonText}>
-            {item.enMantenimiento ? 'Lista para usar' : 'Mantenimiento'}
+            {item.enMantenimiento ? 'Lista' : 'Mantenimiento'}
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => eliminarPista(item.id)} 
+
+        <TouchableOpacity
+          onPress={() => eliminarPista(item.id)}
           style={[styles.actionButton, styles.dangerButton]}
         >
           <Ionicons name="trash" size={16} color="white" />
@@ -152,11 +142,11 @@ export default function AdminPanel({ navigation }) {
   );
 
   const renderReservaItem = ({ item }) => (
-    <View style={styles.reservaItem}>
+    <View style={[styles.reservaItem, isWeb ? styles.webReservaItem : styles.mobileReservaItem]}>
       <View style={styles.reservaHeader}>
         <Text style={styles.reservaUsuario}>{item.usuario}</Text>
         <View style={[
-          styles.reservaEstado, 
+          styles.reservaEstado,
           item.estado === 'confirmada' && styles.estadoConfirmada,
           item.estado === 'cancelada' && styles.estadoCancelada
         ]}>
@@ -164,13 +154,13 @@ export default function AdminPanel({ navigation }) {
         </View>
       </View>
       <Text style={styles.reservaDetalle}>
-        <Ionicons name="tennisball" size={14} color="#4F46E5" /> {item.pista}
+        <Ionicons name="basketball" size={14} color="#4F46E5" /> {item.pista}
       </Text>
       <Text style={styles.reservaDetalle}>
         <Ionicons name="calendar" size={14} color="#4F46E5" /> {item.fecha}
       </Text>
-      <TouchableOpacity 
-        onPress={() => verDetallesReserva(item)} 
+      <TouchableOpacity
+        onPress={() => verDetallesReserva(item)}
         style={styles.detalleButton}
       >
         <Text style={styles.detalleButtonText}>Ver detalles completos</Text>
@@ -180,109 +170,119 @@ export default function AdminPanel({ navigation }) {
 
   return (
     <SafeAreaView style={styles.flexContainer}>
-      {/* Barra de progreso del scroll */}
-      {contentHeight > layoutHeight && (
-        <Animated.View style={[
-          styles.progressBarContainer,
-          { opacity: showProgressBar ? 1 : 0 }
-        ]}>
-          <Animated.View 
-            style={[
-              styles.progressBar,
-              { width: progressBarWidth }
-            ]} 
-          />
-        </Animated.View>
-      )}
-
-      <ScrollView 
-        ref={scrollViewRef}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
         onScroll={handleScroll}
-        onContentSizeChange={(w, h) => setContentHeight(h)}
-        onLayout={({ nativeEvent }) => setLayoutHeight(nativeEvent.layout.height)}
+        scrollEventThrottle={16}
+        onContentSizeChange={onContentSizeChange}
+        showsVerticalScrollIndicator={showScrollIndicator}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, isWeb && styles.webContainer]}>
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, isWeb && styles.webHeader]}>
             <Text style={styles.title}>Panel de Administración</Text>
             <View style={styles.userContainer}>
-              <Ionicons name="person-circle" size={24} color="#4F46E5" />
+             
               <Text style={styles.username}>{usuario.nombre}</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Reservas')}
+                style={[styles.logoutButton, isWeb && styles.webLogoutButton]}
+              >
+                <Ionicons name="log-out" size={16} color="white" />
+                {isWeb && <Text style={styles.logoutButtonText}>Ir a reservas</Text>}
+              </TouchableOpacity>
+
             </View>
           </View>
 
           {/* Estadísticas */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
+          <View style={[styles.statsContainer, isWeb && styles.webStatsContainer]}>
+            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
               <Text style={styles.statNumber}>{pistas.length}</Text>
               <Text style={styles.statLabel}>Pistas</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
               <Text style={styles.statNumber}>{reservas.length}</Text>
               <Text style={styles.statLabel}>Reservas</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
               <Text style={styles.statNumber}>
                 {pistas.filter(p => p.enMantenimiento).length}
               </Text>
               <Text style={styles.statLabel}>En mantenimiento</Text>
             </View>
-          </View>
-
-          {/* Gestión de Pistas */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Gestión de Pistas</Text>
-              <TouchableOpacity onPress={agregarPista} style={styles.addButton}>
-                <Ionicons name="add" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-            
-            {pistas.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="sports-tennis" size={40} color="#9CA3AF" />
-                <Text style={styles.emptyText}>No hay pistas registradas</Text>
-              </View>
-            ) : (
-              <View style={styles.itemsContainer}>
-                {pistas.map((item) => (
-                  <View key={item.id.toString()} style={styles.itemWrapper}>
-                    {renderPistaItem({ item })}
-                  </View>
-                ))}
+            {isWeb && (
+              <View style={[styles.statCard, styles.webStatCard]}>
+                <Text style={styles.statNumber}>
+                  {reservas.filter(r => r.estado === 'confirmada').length}
+                </Text>
+                <Text style={styles.statLabel}>Reservas confirmadas</Text>
               </View>
             )}
           </View>
 
-          {/* Reservas Recientes */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Reservas Recientes</Text>
+          {/* Contenido principal en columnas para web */}
+          <View style={isWeb ? styles.webMainContent : null}>
+            {/* Gestión de Pistas */}
+            <View style={[styles.section, isWeb && styles.webSection]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Gestión de Pistas</Text>
+                <TouchableOpacity onPress={agregarPista} style={styles.addButton}>
+                  <Ionicons name="add" size={20} color="white" />
+                  {isWeb && <Text style={styles.addButtonText}>Añadir pista</Text>}
+                </TouchableOpacity>
+              </View>
+
+              {pistas.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="sports-tennis" size={40} color="#9CA3AF" />
+                  <Text style={styles.emptyText}>No hay pistas registradas</Text>
+                </View>
+              ) : (
+                <View style={[styles.itemsContainer, isWeb && styles.webItemsContainer]}>
+                  {pistas.map((item) => (
+                    <View key={item.id.toString()} style={styles.itemWrapper}>
+                      {renderPistaItem({ item })}
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
-            
-            {reservas.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="event-note" size={40} color="#9CA3AF" />
-                <Text style={styles.emptyText}>No hay reservas recientes</Text>
+
+            {/* Reservas Recientes */}
+            <View style={[styles.section, isWeb && styles.webSection]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Reservas Recientes</Text>
+                {isWeb && (
+                  <TouchableOpacity style={styles.viewAllButton}>
+                    <Text style={styles.viewAllButtonText}>Ver todas</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : (
-              <View style={styles.itemsContainer}>
-                {reservas.map((item) => (
-                  <View key={item.id.toString()} style={styles.itemWrapper}>
-                    {renderReservaItem({ item })}
-                  </View>
-                ))}
-              </View>
-            )}
+
+              {reservas.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="event-note" size={40} color="#9CA3AF" />
+                  <Text style={styles.emptyText}>No hay reservas recientes</Text>
+                </View>
+              ) : (
+                <View style={[styles.itemsContainer, isWeb && styles.webItemsContainer]}>
+                  {reservas.map((item) => (
+                    <View key={item.id.toString()} style={styles.itemWrapper}>
+                      {renderReservaItem({ item })}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
 
-          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-            <Ionicons name="log-out" size={20} color="white" />
-            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-          </TouchableOpacity>
+          {!isWeb && (
+            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+              <Ionicons name="log-out" size={20} color="white" />
+              <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -290,35 +290,71 @@ export default function AdminPanel({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // Contenedores principales
+  // Estilos base
   flexContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
   container: {
     flex: 1,
-    paddingHorizontal: 25,
-    paddingBottom: 30,
+    padding: 16,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 30
+    paddingBottom: 20,
   },
 
-  // Barra de progreso
-  progressBarContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: 'rgba(200, 200, 200, 0.2)',
-    zIndex: 1000,
+  // Estilos para web
+  webContainer: {
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-    borderRadius: 2,
+  webScrollContent: {
+    paddingBottom: 40,
+  },
+  webHeader: {
+    marginBottom: 32,
+  },
+  webMainContent: {
+    flexDirection: 'row',
+    gap: 24,
+    alignItems: 'flex-start',
+  },
+  webSection: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  webStatsContainer: {
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  webStatCard: {
+    flex: 1,
+    minWidth: 180,
+  },
+  webItemsContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: 16,
+  },
+  webItem: {
+    minHeight: 180,
+  },
+  webReservaItem: {
+    minHeight: 160,
+  },
+  webButtonGroup: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+  },
+  webLogoutButton: {
+    paddingHorizontal: 12,
+    marginLeft: 16,
   },
 
   // Header
@@ -326,8 +362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 25,
-    paddingTop: 20,
+    marginBottom: 24,
   },
   title: {
     fontSize: 24,
@@ -348,9 +383,8 @@ const styles = StyleSheet.create({
   // Estadísticas
   statsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 25,
+    marginBottom: 24,
     gap: 12,
   },
   statCard: {
@@ -360,10 +394,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-    minWidth: 100,
     flex: 1,
   },
   statNumber: {
@@ -375,11 +408,12 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
   },
 
   // Secciones
   section: {
-    marginBottom: 30,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -396,11 +430,24 @@ const styles = StyleSheet.create({
   // Botones
   addButton: {
     backgroundColor: '#4F46E5',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
+    borderRadius: 8,
+    padding: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  viewAllButton: {
+    padding: 8,
+  },
+  viewAllButtonText: {
+    color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   // Items
@@ -416,6 +463,14 @@ const styles = StyleSheet.create({
   item: {
     backgroundColor: '#FFFFFF',
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  mobileItem: {
+    marginBottom: 8,
   },
   maintenanceItem: {
     borderLeftWidth: 4,
@@ -460,7 +515,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
     flex: 1,
   },
@@ -483,6 +538,14 @@ const styles = StyleSheet.create({
   reservaItem: {
     backgroundColor: '#FFFFFF',
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  mobileReservaItem: {
+    marginBottom: 8,
   },
   reservaHeader: {
     flexDirection: 'row',
@@ -537,7 +600,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
   },

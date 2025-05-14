@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 
-
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,12 +36,11 @@ export default function Login({ navigation }) {
         throw new Error(data.error || 'Credenciales incorrectas');
       }
 
-      // Asegúrate que la respuesta del backend coincide con esto
       login(data.userData.nombre, data.userData.dni || '', data.userData.rol);
-      
+
       Alert.alert('Bienvenido', `Inicio de sesión exitoso como ${data.userData.rol}`);
       navigation.navigate('Reservas');
-      
+
     } catch (err) {
       console.error('Error en login:', err);
       setError(err.message || 'Error al iniciar sesión');
@@ -53,46 +51,44 @@ export default function Login({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar sesión</Text>
-      
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Iniciar sesión</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Usuario"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        editable={!isLoading}
-      />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!isLoading}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Usuario"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+          editable={!isLoading}
+        />
 
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#007bff" />
-      ) : (
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={handleLogin}
-          disabled={isLoading}
-        >
-          <Text style={styles.buttonText}>Entrar</Text>
-        </TouchableOpacity>
-      )}
+        <TextInput
+          style={styles.input}
+          placeholder="Contraseña"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          editable={!isLoading}
+        />
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Registro')}
-        disabled={isLoading}
-      >
-        <Text style={styles.registerText}>¿No tienes cuenta? Regístrate</Text>
-      </TouchableOpacity>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#3B82F6" />
+        ) : (
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <Text style={styles.buttonText}>Entrar</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={styles.registerText}>
+          ¿No tienes cuenta?{' '}
+          <Text onPress={() => navigation.navigate('Registro')} style={styles.link}>
+            Regístrate aquí
+          </Text>
+        </Text>
+      </View>
     </View>
   );
 }
@@ -100,51 +96,74 @@ export default function Login({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 60,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5'
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 600,
+    backgroundColor: '#FFFFFF',
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center'
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 30,
+    textAlign: 'center',
   },
   input: {
-    height: 50,
-    borderColor: '#ddd',
+    width: '100%',
     borderWidth: 1,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    backgroundColor: 'white',
-    fontSize: 16
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 20,
+    fontSize: 16,
+    backgroundColor: '#F9FAFB',
   },
   button: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 12,
     marginTop: 10,
-    elevation: 3,
-    // Para web:
-    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '600',
-    fontSize: 16
   },
-  error: {
-    color: 'red',
-    marginBottom: 15,
+  errorText: {
+    color: '#DC2626',
+    fontSize: 16,
+    marginBottom: 20,
     textAlign: 'center',
-    fontWeight: '500'
   },
   registerText: {
     marginTop: 20,
+    fontSize: 16,
+    color: '#6B7280',
     textAlign: 'center',
-    color: '#007bff',
-    fontSize: 15
-  }
+  },
+  link: {
+    color: '#3B82F6',
+    fontWeight: '600',
+  },
 });

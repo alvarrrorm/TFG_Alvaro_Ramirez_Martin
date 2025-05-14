@@ -1,40 +1,78 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  SafeAreaView,
+  ScrollView,
+  StatusBar
+} from 'react-native';
 import { useUser } from '../contexto/UserContex';
 
 export default function Reservas({ navigation }) {
   const { usuario, rol, logout } = useUser();
 
-  console.log("Datos del contexto - Usuario:", usuario, "Rol:", rol); // Para depuración
-
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Header fijo */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={logout}>
+        <TouchableOpacity onPress={logout} style={styles.logoutButton}>
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Área de reservas</Text>
-        <Text style={styles.username}>Hola, {usuario || 'invitado'} 👋</Text>
-        
-        {rol === 'admin' && (
-          <TouchableOpacity
-            style={[styles.button, styles.adminButton]}
-            onPress={() => navigation.navigate('AdminPanel')}
-          >
-            <Text style={styles.buttonText}>Ir a administración</Text>
-          </TouchableOpacity>
-        )}
+      {/* Contenido con scroll */}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Área de reservas</Text>
+          <Text style={styles.username}>Hola, {usuario || 'invitado'} 👋</Text>
+          
+          {rol === 'admin' && (
+            <TouchableOpacity
+              style={[styles.button, styles.adminButton]}
+              onPress={() => navigation.navigate('AdminPanel')}
+            >
+              <Text style={styles.buttonText}>Panel de Administración</Text>
+              <Text style={styles.buttonSubtext}>Gestionar pistas y reservas</Text>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity
-          style={[styles.button, styles.reserveButton]}
-          onPress={() => navigation.navigate('NuevaReserva')}
-        >
-          <Text style={styles.buttonText}>Hacer nueva reserva</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.button, styles.reserveButton]}
+            onPress={() => navigation.navigate('NuevaReserva')}
+          >
+            <Text style={styles.buttonText}>Nueva Reserva</Text>
+            <Text style={styles.buttonSubtext}>Reservar una pista ahora</Text>
+          </TouchableOpacity>
+
+          {/* Sección adicional para hacer scroll */}
+          <View style={styles.infoSection}>
+            <Text style={styles.sectionTitle}>Cómo reservar</Text>
+            <View style={styles.step}>
+              <Text style={styles.stepNumber}>1</Text>
+              <Text style={styles.stepText}>Selecciona "Nueva Reserva"</Text>
+            </View>
+            <View style={styles.step}>
+              <Text style={styles.stepNumber}>2</Text>
+              <Text style={styles.stepText}>Elige fecha y hora</Text>
+            </View>
+            <View style={styles.step}>
+              <Text style={styles.stepNumber}>3</Text>
+              <Text style={styles.stepText}>Selecciona la pista disponible</Text>
+            </View>
+            <View style={styles.step}>
+              <Text style={styles.stepNumber}>4</Text>
+              <Text style={styles.stepText}>Confirma tu reserva</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -45,58 +83,112 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 15,
     paddingHorizontal: 20,
-    alignItems: 'flex-end',
+    paddingBottom: 10,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
+  logoutButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
   },
   logoutText: {
     color: '#EF4444',
     fontWeight: '600',
     fontSize: 16,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 30,
+  },
   content: {
-    flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 40,
-    alignItems: 'center',
+    paddingHorizontal: 25,
+    paddingTop: 20,
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1F2937',
-    marginBottom: 10,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   username: {
     fontSize: 22,
     fontWeight: '600',
     color: '#3B82F6',
-    marginBottom: 10,
-  },
-  userRole: {
-    fontSize: 16,
-    color: '#64748B',
-    marginBottom: 20,
-    fontStyle: 'italic',
+    marginBottom: 30,
+    textAlign: 'center',
   },
   button: {
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 25,
+    borderRadius: 14,
     marginBottom: 20,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   reserveButton: {
     backgroundColor: '#3B82F6',
-    elevation: 3,
   },
   adminButton: {
     backgroundColor: '#10B981',
-    elevation: 3,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  buttonSubtext: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoSection: {
+    marginTop: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  step: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  stepNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E5E7EB',
+    color: '#3B82F6',
+    fontWeight: '700',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    marginRight: 15,
+  },
+  stepText: {
+    fontSize: 16,
+    color: '#4B5563',
+    flex: 1,
   },
 });

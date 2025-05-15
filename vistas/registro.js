@@ -91,6 +91,7 @@ export default function Register({ navigation }) {
         />
         <TextInput
           placeholder="Clave de administrador (opcional)"
+          secureTextEntry
           style={styles.input}
           value={claveAdmin}
           onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}

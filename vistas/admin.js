@@ -1,631 +1,337 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  useWindowDimensions,
-  ScrollView,
   SafeAreaView,
-  Animated,
-  Platform
+  FlatList,
+  TextInput,
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
+// ... imports
+
 export default function AdminPanel({ navigation }) {
   const { usuario, logout } = useUser();
   const [pistas, setPistas] = useState([]);
-  const [reservas, setReservas] = useState([]);
-  const { width } = useWindowDimensions();
-
-  const isWeb = width >= 768;
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [nuevoTipo, setNuevoTipo] = useState('');
 
   useEffect(() => {
-    // Datos de ejemplo
-    setPistas([
-      { id: 1, nombre: 'Pista Central', enMantenimiento: false, tipo: 'Tierra batida' },
-      { id: 2, nombre: 'Pista Cubierta', enMantenimiento: false, tipo: 'Dura' },
-      { id: 3, nombre: 'Pista Norte', enMantenimiento: true, tipo: 'Hierba' },
-      { id: 4, nombre: 'Pista Sur', enMantenimiento: false, tipo: 'Tierra batida' },
-      { id: 5, nombre: 'Pista Este', enMantenimiento: false, tipo: 'Dura' },
-    ]);
-
-    setReservas([
-      { id: 1, usuario: 'Juan Pérez', pista: 'Pista Central', fecha: '2025-05-12 10:00', estado: 'confirmada' },
-      { id: 2, usuario: 'Ana López', pista: 'Pista Cubierta', fecha: '2025-05-13 14:00', estado: 'pendiente' },
-      { id: 3, usuario: 'Carlos Ruiz', pista: 'Pista Norte', fecha: '2025-05-14 16:30', estado: 'cancelada' },
-      { id: 4, usuario: 'María García', pista: 'Pista Sur', fecha: '2025-05-15 11:00', estado: 'confirmada' },
-    ]);
+    fetchPistas();
   }, []);
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
-  const onContentSizeChange = (contentWidth, contentHeight) => {
-    // Mostrar indicador de scroll solo si el contenido es más alto que la pantalla
-    setShowScrollIndicator(contentHeight > width * 0.8); // Ajuste para web
-  };
-
-  const marcarMantenimiento = (id) => {
-    const updatedPistas = pistas.map(pista =>
-      pista.id === id ? { ...pista, enMantenimiento: !pista.enMantenimiento } : pista
-    );
-    setPistas(updatedPistas);
-  };
-
-  const eliminarPista = (id) => {
-    Alert.alert(
-      'Eliminar pista',
-      '¿Estás seguro de que deseas eliminar esta pista?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            const updatedPistas = pistas.filter(pista => pista.id !== id);
-            setPistas(updatedPistas);
-          }
-        },
-      ]
-    );
-  };
-
-  const verDetallesReserva = (reserva) => {
-    Alert.alert(
-      `Detalles de reserva #${reserva.id}`,
-      `👤 Usuario: ${reserva.usuario}\n🎾 Pista: ${reserva.pista}\n📅 Fecha: ${reserva.fecha}\n📌 Estado: ${reserva.estado}`,
-      [{ text: 'Cerrar' }]
-    );
+  const fetchPistas = async () => {
+    try {
+      const data = [
+        { id: 1, nombre: 'Pista Central', enMantenimiento: false, tipo: 'Tierra batida' },
+        { id: 2, nombre: 'Pista Cubierta', enMantenimiento: false, tipo: 'Dura' },
+        { id: 3, nombre: 'Pista Norte', enMantenimiento: true, tipo: 'Hierba' },
+      ];
+      setPistas(data);
+    } catch (error) {
+      console.error('Error al cargar pistas:', error);
+    }
   };
 
   const agregarPista = () => {
-    const nuevaId = pistas.length > 0 ? Math.max(...pistas.map(p => p.id)) + 1 : 1;
+    if (!nuevoNombre || !nuevoTipo) {
+      Alert.alert('Error', 'Nombre y tipo son obligatorios');
+      return;
+    }
     const nuevaPista = {
-      id: nuevaId,
-      nombre: `Pista ${nuevaId}`,
+      id: pistas.length + 1,
+      nombre: nuevoNombre,
+      tipo: nuevoTipo,
       enMantenimiento: false,
-      tipo: ['Tierra batida', 'Dura', 'Hierba'][Math.floor(Math.random() * 3)]
     };
     setPistas([...pistas, nuevaPista]);
+    setNuevoNombre('');
+    setNuevoTipo('');
   };
 
-  const renderPistaItem = ({ item }) => (
-    <View style={[
-      styles.item,
-      isWeb ? styles.webItem : styles.mobileItem,
-      item.enMantenimiento && styles.maintenanceItem
-    ]}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.itemName}>{item.nombre}</Text>
-        {item.enMantenimiento && (
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Mantenimiento</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.itemDetail}>Tipo: {item.tipo}</Text>
+  const eliminarPista = (id) => {
+    if (typeof window !== 'undefined' && window.confirm) {
+      if (window.confirm('¿Seguro que quieres eliminar esta pista?')) {
+        setPistas(currentPistas => currentPistas.filter(p => p.id !== id));
+      }
+    } else {
+      Alert.alert(
+        'Confirmar',
+        '¿Eliminar esta pista?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () =>
+              setPistas(currentPistas =>
+                currentPistas.filter(p => p.id !== id)
+              ),
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
 
-      <View style={[styles.buttonGroup, isWeb && styles.webButtonGroup]}>
-        <TouchableOpacity
-          onPress={() => marcarMantenimiento(item.id)}
-          style={[
-            styles.actionButton,
-            item.enMantenimiento ? styles.successButton : styles.warningButton
-          ]}
-        >
-          <Ionicons
-            name={item.enMantenimiento ? "checkmark-circle" : "construct"}
-            size={16}
-            color="white"
+  const marcarMantenimiento = (id) => {
+    const actualizadas = pistas.map(p =>
+      p.id === id ? { ...p, enMantenimiento: !p.enMantenimiento } : p
+    );
+    setPistas(actualizadas);
+  };
+
+  const renderPista = ({ item }) => (
+    <View style={styles.pistaCard}>
+      <View style={styles.pistaHeader}>
+        <Text style={styles.pistaTitulo}>{item.nombre}</Text>
+        <View style={styles.estadoContainer}>
+          <View
+            style={[
+              styles.estadoIndicator,
+              { backgroundColor: item.enMantenimiento ? '#FFA500' : '#4CAF50' },
+            ]}
           />
-          <Text style={styles.actionButtonText}>
-            {item.enMantenimiento ? 'Lista' : 'Mantenimiento'}
+          <Text style={styles.estadoTexto}>
+            {item.enMantenimiento ? 'Mantenimiento' : 'Disponible'}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.pistaSubtitulo}>
+        Tipo: <Text style={styles.pistaTexto}>{item.tipo}</Text>
+      </Text>
+      <View style={styles.pistaAcciones}>
+        <TouchableOpacity
+          style={styles.accionBtn}
+          onPress={() => marcarMantenimiento(item.id)}
+        >
+          <MaterialIcons
+            name={item.enMantenimiento ? 'handyman' : 'construction'}
+            size={20}
+            color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
+          />
+          <Text style={styles.accionTexto}>
+            {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.accionBtn, styles.eliminarBtn]}
           onPress={() => eliminarPista(item.id)}
-          style={[styles.actionButton, styles.dangerButton]}
         >
-          <Ionicons name="trash" size={16} color="white" />
-          <Text style={styles.actionButtonText}>Eliminar</Text>
+          <Ionicons name="trash-outline" size={20} color="#F44336" />
+          <Text style={[styles.accionTexto, styles.eliminarTexto]}>Eliminar</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const renderReservaItem = ({ item }) => (
-    <View style={[styles.reservaItem, isWeb ? styles.webReservaItem : styles.mobileReservaItem]}>
-      <View style={styles.reservaHeader}>
-        <Text style={styles.reservaUsuario}>{item.usuario}</Text>
-        <View style={[
-          styles.reservaEstado,
-          item.estado === 'confirmada' && styles.estadoConfirmada,
-          item.estado === 'cancelada' && styles.estadoCancelada
-        ]}>
-          <Text style={styles.reservaEstadoText}>{item.estado}</Text>
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.titulo}>Panel de Administrador</Text>
+          <Text style={styles.subtitulo}>Bienvenido, {usuario?.nombre || 'Administrador'}</Text>
+        </View>
+
+        <View style={styles.formContainer}>
+          <Text style={styles.formTitulo}>Agregar Nueva Pista</Text>
+          <View style={styles.agregarForm}>
+            <TextInput
+              placeholder="Nombre de pista"
+              placeholderTextColor="#999"
+              value={nuevoNombre}
+              onChangeText={setNuevoNombre}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Tipo de pista (ej: Tierra batida, Dura)"
+              placeholderTextColor="#999"
+              value={nuevoTipo}
+              onChangeText={setNuevoTipo}
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.botonAgregar} onPress={agregarPista}>
+              <Text style={styles.botonTexto}>Agregar Pista</Text>
+              <Ionicons name="add-circle-outline" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.listaContainer}>
+          <Text style={styles.listaTitulo}>Pistas Disponibles ({pistas.length})</Text>
+          <FlatList
+            data={pistas}
+            renderItem={renderPista}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.listaContent}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       </View>
-      <Text style={styles.reservaDetalle}>
-        <Ionicons name="basketball" size={14} color="#4F46E5" /> {item.pista}
-      </Text>
-      <Text style={styles.reservaDetalle}>
-        <Ionicons name="calendar" size={14} color="#4F46E5" /> {item.fecha}
-      </Text>
-      <TouchableOpacity
-        onPress={() => verDetallesReserva(item)}
-        style={styles.detalleButton}
-      >
-        <Text style={styles.detalleButtonText}>Ver detalles completos</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.flexContainer}>
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onContentSizeChange={onContentSizeChange}
-        showsVerticalScrollIndicator={showScrollIndicator}
-      >
-        <View style={[styles.container, isWeb && styles.webContainer]}>
-          {/* Header */}
-          <View style={[styles.header, isWeb && styles.webHeader]}>
-            <Text style={styles.title}>Panel de Administración</Text>
-            <View style={styles.userContainer}>
-             
-              <Text style={styles.username}>{usuario.nombre}</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Reservas')}
-                style={[styles.logoutButton, isWeb && styles.webLogoutButton]}
-              >
-                <Ionicons name="log-out" size={16} color="white" />
-                {isWeb && <Text style={styles.logoutButtonText}>Ir a reservas</Text>}
-              </TouchableOpacity>
-
-            </View>
-          </View>
-
-          {/* Estadísticas */}
-          <View style={[styles.statsContainer, isWeb && styles.webStatsContainer]}>
-            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
-              <Text style={styles.statNumber}>{pistas.length}</Text>
-              <Text style={styles.statLabel}>Pistas</Text>
-            </View>
-            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
-              <Text style={styles.statNumber}>{reservas.length}</Text>
-              <Text style={styles.statLabel}>Reservas</Text>
-            </View>
-            <View style={[styles.statCard, isWeb && styles.webStatCard]}>
-              <Text style={styles.statNumber}>
-                {pistas.filter(p => p.enMantenimiento).length}
-              </Text>
-              <Text style={styles.statLabel}>En mantenimiento</Text>
-            </View>
-            {isWeb && (
-              <View style={[styles.statCard, styles.webStatCard]}>
-                <Text style={styles.statNumber}>
-                  {reservas.filter(r => r.estado === 'confirmada').length}
-                </Text>
-                <Text style={styles.statLabel}>Reservas confirmadas</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Contenido principal en columnas para web */}
-          <View style={isWeb ? styles.webMainContent : null}>
-            {/* Gestión de Pistas */}
-            <View style={[styles.section, isWeb && styles.webSection]}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Gestión de Pistas</Text>
-                <TouchableOpacity onPress={agregarPista} style={styles.addButton}>
-                  <Ionicons name="add" size={20} color="white" />
-                  {isWeb && <Text style={styles.addButtonText}>Añadir pista</Text>}
-                </TouchableOpacity>
-              </View>
-
-              {pistas.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MaterialIcons name="sports-tennis" size={40} color="#9CA3AF" />
-                  <Text style={styles.emptyText}>No hay pistas registradas</Text>
-                </View>
-              ) : (
-                <View style={[styles.itemsContainer, isWeb && styles.webItemsContainer]}>
-                  {pistas.map((item) => (
-                    <View key={item.id.toString()} style={styles.itemWrapper}>
-                      {renderPistaItem({ item })}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Reservas Recientes */}
-            <View style={[styles.section, isWeb && styles.webSection]}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Reservas Recientes</Text>
-                {isWeb && (
-                  <TouchableOpacity style={styles.viewAllButton}>
-                    <Text style={styles.viewAllButtonText}>Ver todas</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {reservas.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <MaterialIcons name="event-note" size={40} color="#9CA3AF" />
-                  <Text style={styles.emptyText}>No hay reservas recientes</Text>
-                </View>
-              ) : (
-                <View style={[styles.itemsContainer, isWeb && styles.webItemsContainer]}>
-                  {reservas.map((item) => (
-                    <View key={item.id.toString()} style={styles.itemWrapper}>
-                      {renderReservaItem({ item })}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-
-          {!isWeb && (
-            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-              <Ionicons name="log-out" size={20} color="white" />
-              <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Estilos base
-  flexContainer: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F5F7FA',
   },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-
-  // Estilos para web
-  webContainer: {
-    maxWidth: 1200,
-    width: '100%',
+  listaContent: {
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    maxWidth: 800,
     alignSelf: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    width: '90%',
   },
-  webScrollContent: {
-    paddingBottom: 40,
-  },
-  webHeader: {
-    marginBottom: 32,
-  },
-  webMainContent: {
-    flexDirection: 'row',
-    gap: 24,
-    alignItems: 'flex-start',
-  },
-  webSection: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  webStatsContainer: {
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  webStatCard: {
-    flex: 1,
-    minWidth: 180,
-  },
-  webItemsContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: 16,
-  },
-  webItem: {
-    minHeight: 180,
-  },
-  webReservaItem: {
-    minHeight: 160,
-  },
-  webButtonGroup: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-  },
-  webLogoutButton: {
-    paddingHorizontal: 12,
-    marginLeft: 16,
-  },
-
-  // Header
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 25,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  userContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
-
-  // Estadísticas
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
-  },
-  statCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    flex: 1,
-  },
-  statNumber: {
+  titulo: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#4F46E5',
-    marginBottom: 4,
+    color: '#2C3E50',
+    marginBottom: 5,
+    alignSelf: 'center'
   },
-  statLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
+  subtitulo: {
+    fontSize: 16,
+    color: '#7F8C8D',
+    alignSelf:'center',
+    textAlign: 'center'
+    },
 
-  // Secciones
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
+ formContainer: {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 12,
+  padding: 20,
+  marginBottom: 25,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 6,
+  elevation: 3,
+  maxWidth: 800,
+  alignSelf: 'center',
+  width: '90%',
+},
 
-  // Botones
-  addButton: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 8,
-    padding: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  viewAllButton: {
-    padding: 8,
-  },
-  viewAllButtonText: {
-    color: '#4F46E5',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-
-  // Items
-  itemsContainer: {
-    gap: 12,
-  },
-  itemWrapper: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-
-  // Item Pista
-  item: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  mobileItem: {
-    marginBottom: 8,
-  },
-  maintenanceItem: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  itemName: {
+  
+  formTitulo: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#2C3E50',
+    marginBottom: 15,
   },
-  statusBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+  agregarForm: {
+    marginBottom: 5,
   },
-  statusText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '500',
+  input: {
+    backgroundColor: '#F5F7FA',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    fontSize: 16,
+    color: '#34495E',
   },
-  itemDetail: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-
-  // Botones de acción
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
+  botonAgregar: {
+    backgroundColor: '#3498DB',
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 8,
-    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
   },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
+  botonTexto: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
-  warningButton: {
-    backgroundColor: '#F59E0B',
+  listaTitulo: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 15,
+    textAlign: 'center'
   },
-  successButton: {
-    backgroundColor: '#10B981',
-  },
-  dangerButton: {
-    backgroundColor: '#EF4444',
-  },
-
-  // Item Reserva
-  reservaItem: {
+  pistaCard: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  mobileReservaItem: {
-    marginBottom: 8,
-  },
-  reservaHeader: {
+  pistaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  reservaUsuario: {
-    fontSize: 16,
+  pistaTitulo: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#2C3E50',
   },
-  reservaEstado: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
-  },
-  reservaEstadoText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'capitalize',
-  },
-  estadoConfirmada: {
-    backgroundColor: '#D1FAE5',
-  },
-  estadoCancelada: {
-    backgroundColor: '#FEE2E2',
-  },
-  reservaDetalle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  detalleButton: {
-    marginTop: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  detalleButtonText: {
-    color: '#4F46E5',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-
-  // Estados vacíos
-  emptyState: {
-    backgroundColor: 'white',
-    padding: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  emptyText: {
-    marginTop: 12,
-    color: '#9CA3AF',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-
-  // Botón de logout
-  logoutButton: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 20,
+  estadoContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    elevation: 3,
+    gap: 5,
   },
-  logoutButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  estadoIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  estadoTexto: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    fontWeight: '500',
+  },
+  pistaSubtitulo: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 5,
+  },
+  pistaTexto: {
+    color: '#34495E',
+    fontWeight: '500',
+  },
+  pistaAcciones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 15,
+    gap: 15,
+  },
+  accionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#ECF0F1',
+    gap: 5,
+  },
+  accionTexto: {
+    fontSize: 14,
+    color: '#34495E',
+    fontWeight: '500',
+  },
+  eliminarBtn: {
+    backgroundColor: '#FDEDED',
+  },
+  eliminarTexto: {
+    color: '#F44336',
   },
 });

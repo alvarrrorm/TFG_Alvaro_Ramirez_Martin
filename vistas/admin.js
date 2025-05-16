@@ -12,7 +12,8 @@ import {
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
-// ... imports
+import { ScrollView } from 'react-native'; 
+
 
 export default function AdminPanel({ navigation }) {
   const { usuario, logout } = useUser();

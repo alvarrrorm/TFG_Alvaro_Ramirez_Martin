@@ -29,18 +29,36 @@ app.set('conexion', conexion);
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 const loginRuta = require('./rutas/login');
 const registroRuta = require('./rutas/registro');
-const pistasRuta = require('./rutas/pistas');  // <--- Importa aquí
+const pistasRuta = require('./rutas/pistas');
 
 app.use('/login', loginRuta);
 app.use('/registro', registroRuta);
-app.use('/pistas', pistasRuta);  // <--- Usa la ruta aquí
+app.use('/pistas', pistasRuta);
+
+// Ruta de prueba
+app.get('/', (req, res) => {
+  res.send('API del Polideportivo');
+});
+
+// Manejo de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Algo salió mal!' });
+});
 
 // Iniciar servidor
 const PORT = 3001;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
+
+// Cerrar conexión al terminar
+process.on('SIGINT', () => {
+  conexion.end();
+  process.exit();
 });

@@ -15,7 +15,7 @@ import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 
-const API_URL = 'http://localhost:3001'; // Asegúrate que esta URL sea correcta para tu entorno
+const API_URL = 'http://localhost:3001/pistas';
 
 export default function AdminPanel({ navigation }) {
   const { usuario } = useUser();
@@ -24,8 +24,6 @@ export default function AdminPanel({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoTipo, setNuevoTipo] = useState(null);
-
-  // Configuración del dropdown
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
     { label: 'Fútbol', value: 'Fútbol' },
@@ -40,7 +38,7 @@ export default function AdminPanel({ navigation }) {
   const fetchPistas = async () => {
     try {
       setRefreshing(true);
-      const response = await fetch(`${API_URL}/pistas`);
+      const response = await fetch(API_URL);
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${await response.text()}`);
@@ -63,53 +61,33 @@ export default function AdminPanel({ navigation }) {
 
   // Agregar nueva pista
   const agregarPista = async () => {
-  if (!nuevoNombre.trim()) {
-    Alert.alert('Error', 'El nombre de la pista es obligatorio');
-    return;
-  }
-
-  if (!nuevoTipo) {
-    Alert.alert('Error', 'Debes seleccionar un tipo de pista');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/api/pistas`, {  // Nota el /api/ añadido
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        nombre: nuevoNombre.trim(),
-        tipo: nuevoTipo,
-        enMantenimiento: false
-      }),
-    });
-
-    // Verifica si la respuesta no es JSON
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      throw new Error(`Respuesta inesperada: ${text}`);
+    if (!nuevoNombre.trim() || !nuevoTipo) {
+      Alert.alert('Error', 'Nombre y tipo son obligatorios');
+      return;
     }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al agregar pista');
-    }
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nuevoNombre.trim(),
+          tipo: nuevoTipo
+        }),
+      });
 
-    const nuevaPista = await response.json();
-    
-    setPistas([...pistas, nuevaPista]);
-    setNuevoNombre('');
-    setNuevoTipo(null);
-    
-    Alert.alert('Éxito', 'Pista agregada correctamente');
-  } catch (error) {
-    console.error('Error al agregar pista:', error);
-    Alert.alert('Error', error.message || 'No se pudo agregar la pista');
-  }
-};
+      const data = await response.json();
+      setPistas([...pistas, data]);
+      setNuevoNombre('');
+      setNuevoTipo(null);
+      Alert.alert('Éxito', 'Pista agregada correctamente');
+    } catch (error) {
+      console.error('Error al agregar pista:', error);
+      Alert.alert('Error', 'No se pudo agregar la pista');
+    }
+  };
 
   // Eliminar pista
   const eliminarPista = (id) => {
@@ -117,16 +95,13 @@ export default function AdminPanel({ navigation }) {
       'Confirmar eliminación',
       '¿Estás seguro de que deseas eliminar esta pista?',
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${API_URL}/pistas/${id}`, {
+              const response = await fetch(`${API_URL}/${id}`, {
                 method: 'DELETE',
               });
 
@@ -138,7 +113,7 @@ export default function AdminPanel({ navigation }) {
               Alert.alert('Éxito', 'Pista eliminada correctamente');
             } catch (error) {
               console.error('Error al eliminar pista:', error);
-              Alert.alert('Error', error.message || 'No se pudo eliminar la pista');
+              Alert.alert('Error', 'No se pudo eliminar la pista');
             }
           },
         },
@@ -152,7 +127,7 @@ export default function AdminPanel({ navigation }) {
       const pista = pistas.find(p => p.id === id);
       if (!pista) return;
 
-      const response = await fetch(`${API_URL}/pistas/${id}`, {
+      const response = await fetch(`${API_URL}/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -162,21 +137,15 @@ export default function AdminPanel({ navigation }) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Error al actualizar el estado de la pista');
-      }
-
       const pistaActualizada = await response.json();
-      
-      setPistas(pistas.map(p => 
-        p.id === id ? pistaActualizada : p
-      ));
+      setPistas(pistas.map(p => p.id === id ? pistaActualizada : p));
     } catch (error) {
       console.error('Error al cambiar estado:', error);
-      Alert.alert('Error', error.message || 'No se pudo cambiar el estado');
+      Alert.alert('Error', 'No se pudo cambiar el estado');
     }
   };
 
+  // Renderizar cada item de la lista
   const renderItem = ({ item }) => (
     <View style={styles.pistaCard}>
       <View style={styles.pistaHeader}>
@@ -259,8 +228,6 @@ export default function AdminPanel({ navigation }) {
             placeholder="Seleccionar tipo"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
-            zIndex={3000}
-            zIndexInverse={1000}
           />
           
           <TouchableOpacity 
@@ -285,7 +252,7 @@ export default function AdminPanel({ navigation }) {
               data={pistas}
               renderItem={renderItem}
               keyExtractor={item => item.id.toString()}
-              scrollEnabled={false} // Para ScrollView anidado
+              scrollEnabled={false} 
               refreshing={refreshing}
               onRefresh={fetchPistas}
             />

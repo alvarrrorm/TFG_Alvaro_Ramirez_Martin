@@ -7,7 +7,7 @@ const mysql = require('mysql');
 const conexion = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'qwerty',        // pon tu contraseña si la tienes
+  password: 'qwerty',
   database: 'gestion_polideportivo'
 });
 
@@ -33,9 +33,11 @@ app.use(bodyParser.json());
 // Rutas
 const loginRuta = require('./rutas/login');
 const registroRuta = require('./rutas/registro');
+const pistasRuta = require('./rutas/pistas');  // <--- Importa aquí
 
 app.use('/login', loginRuta);
 app.use('/registro', registroRuta);
+app.use('/pistas', pistasRuta);  // <--- Usa la ruta aquí
 
 // Iniciar servidor
 const PORT = 3001;

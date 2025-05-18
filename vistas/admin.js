@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,26 @@ import {
   SafeAreaView,
   FlatList,
   TextInput,
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 
+const API_URL = 'http://localhost:3001'; // Asegúrate que esta URL sea correcta para tu entorno
+
 export default function AdminPanel({ navigation }) {
   const { usuario } = useUser();
-
   const [pistas, setPistas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoTipo, setNuevoTipo] = useState(null);
 
+  // Configuración del dropdown
   const [open, setOpen] = useState(false);
-  const [tipos, setTipos] = useState([
+  const [items, setItems] = useState([
     { label: 'Fútbol', value: 'Fútbol' },
     { label: 'Baloncesto', value: 'Baloncesto' },
     { label: 'Tenis', value: 'Tenis' },
@@ -30,357 +36,411 @@ export default function AdminPanel({ navigation }) {
     { label: 'Hierba', value: 'Hierba' },
   ]);
 
+  // Cargar pistas desde la API
+  const fetchPistas = async () => {
+    try {
+      setRefreshing(true);
+      const response = await fetch(`${API_URL}/pistas`);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      setPistas(data);
+    } catch (error) {
+      console.error('Error al cargar pistas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las pistas');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchPistas();
   }, []);
 
-  const fetchPistas = async () => {
-    try {
-      const data = [
-        { id: 1, nombre: 'Pista Central', enMantenimiento: false, tipo: 'Tierra batida' },
-        { id: 2, nombre: 'Pista Cubierta', enMantenimiento: false, tipo: 'Dura' },
-        { id: 3, nombre: 'Pista Norte', enMantenimiento: true, tipo: 'Hierba' },
-      ];
-      setPistas(data);
-    } catch (error) {
-      console.error('Error al cargar pistas:', error);
+  // Agregar nueva pista
+  const agregarPista = async () => {
+  if (!nuevoNombre.trim()) {
+    Alert.alert('Error', 'El nombre de la pista es obligatorio');
+    return;
+  }
+
+  if (!nuevoTipo) {
+    Alert.alert('Error', 'Debes seleccionar un tipo de pista');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/api/pistas`, {  // Nota el /api/ añadido
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        nombre: nuevoNombre.trim(),
+        tipo: nuevoTipo,
+        enMantenimiento: false
+      }),
+    });
+
+    // Verifica si la respuesta no es JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Respuesta inesperada: ${text}`);
     }
-  };
 
-  // Genera un ID único sencillo basado en timestamp y aleatorio
-  const generarIdUnico = () => {
-    return Date.now() + Math.floor(Math.random() * 1000);
-  };
-
-  const agregarPista = () => {
-    if (!nuevoNombre.trim() || !nuevoTipo) {
-      Alert.alert('Error', 'Nombre y tipo son obligatorios');
-      return;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al agregar pista');
     }
 
-    // Evitar nombres repetidos
-    const nombreExistente = pistas.some(
-      (p) => p.nombre.toLowerCase().trim() === nuevoNombre.toLowerCase().trim()
-    );
-    if (nombreExistente) {
-      Alert.alert('Error', 'Ya existe una pista con ese nombre');
-      return;
-    }
-
-    const nuevaPista = {
-      id: generarIdUnico(),
-      nombre: nuevoNombre.trim(),
-      tipo: nuevoTipo,
-      enMantenimiento: false,
-    };
-
-    setPistas((prev) => [...prev, nuevaPista]);
+    const nuevaPista = await response.json();
+    
+    setPistas([...pistas, nuevaPista]);
     setNuevoNombre('');
     setNuevoTipo(null);
-  };
-const eliminarPista = (id) => {
-    if (typeof window !== 'undefined' && window.confirm) {
-      if (window.confirm('¿Seguro que quieres eliminar esta pista?')) {
-        setPistas(currentPistas => currentPistas.filter(p => p.id !== id));
-      }
-    } else {
-      Alert.alert(
-        'Confirmar',
-        '¿Eliminar esta pista?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Eliminar',
-            style: 'destructive',
-            onPress: () =>
-              setPistas(currentPistas =>
-                currentPistas.filter(p => p.id !== id)
-              ),
-          },
-        ],
-        { cancelable: true }
-      );
-    }
-  };
+    
+    Alert.alert('Éxito', 'Pista agregada correctamente');
+  } catch (error) {
+    console.error('Error al agregar pista:', error);
+    Alert.alert('Error', error.message || 'No se pudo agregar la pista');
+  }
+};
 
-  const marcarMantenimiento = (id) => {
-    setPistas((prevPistas) =>
-      prevPistas.map((p) =>
-        p.id === id ? { ...p, enMantenimiento: !p.enMantenimiento } : p
-      )
+  // Eliminar pista
+  const eliminarPista = (id) => {
+    Alert.alert(
+      'Confirmar eliminación',
+      '¿Estás seguro de que deseas eliminar esta pista?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`${API_URL}/pistas/${id}`, {
+                method: 'DELETE',
+              });
+
+              if (!response.ok) {
+                throw new Error('Error al eliminar la pista');
+              }
+
+              setPistas(pistas.filter(pista => pista.id !== id));
+              Alert.alert('Éxito', 'Pista eliminada correctamente');
+            } catch (error) {
+              console.error('Error al eliminar pista:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar la pista');
+            }
+          },
+        },
+      ]
     );
   };
 
-  const renderPista = useCallback(
-    ({ item }) => (
-      <View style={styles.pistaCard}>
-        <View style={styles.pistaHeader}>
-          <Text style={styles.pistaTitulo}>{item.nombre}</Text>
-          <View style={styles.estadoContainer}>
-            <View
-              style={[
-                styles.estadoIndicator,
-                { backgroundColor: item.enMantenimiento ? '#FFA500' : '#4CAF50' },
-              ]}
-            />
-            <Text style={styles.estadoTexto}>
-              {item.enMantenimiento ? 'Mantenimiento' : 'Disponible'}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.pistaSubtitulo}>
-          Tipo: <Text style={styles.pistaTexto}>{item.tipo}</Text>
-        </Text>
-        <View style={styles.pistaAcciones}>
-          <TouchableOpacity
-            style={styles.accionBtn}
-            onPress={() => marcarMantenimiento(item.id)}
-          >
-            <MaterialIcons
-              name={item.enMantenimiento ? 'handyman' : 'construction'}
-              size={20}
-              color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
-            />
-            <Text style={styles.accionTexto}>
-              {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
-            </Text>
-          </TouchableOpacity>
+  // Cambiar estado de mantenimiento
+  const toggleMantenimiento = async (id) => {
+    try {
+      const pista = pistas.find(p => p.id === id);
+      if (!pista) return;
 
-          <TouchableOpacity
-            style={[styles.accionBtn, styles.eliminarBtn]}
-            onPress={() => eliminarPista(item.id)}
-          >
-            <Ionicons name="trash-outline" size={20} color="#F44336" />
-            <Text style={[styles.accionTexto, styles.eliminarTexto]}>Eliminar</Text>
-          </TouchableOpacity>
+      const response = await fetch(`${API_URL}/pistas/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          enMantenimiento: !pista.enMantenimiento
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el estado de la pista');
+      }
+
+      const pistaActualizada = await response.json();
+      
+      setPistas(pistas.map(p => 
+        p.id === id ? pistaActualizada : p
+      ));
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+      Alert.alert('Error', error.message || 'No se pudo cambiar el estado');
+    }
+  };
+
+  const renderItem = ({ item }) => (
+    <View style={styles.pistaCard}>
+      <View style={styles.pistaHeader}>
+        <Text style={styles.pistaNombre}>{item.nombre}</Text>
+        <View style={styles.estadoContainer}>
+          <View style={[
+            styles.estadoIndicator,
+            { backgroundColor: item.enMantenimiento ? '#FFA500' : '#4CAF50' }
+          ]} />
+          <Text style={styles.estadoTexto}>
+            {item.enMantenimiento ? 'En mantenimiento' : 'Disponible'}
+          </Text>
         </View>
       </View>
-    ),
-    [pistas]
+      
+      <Text style={styles.pistaTipo}>Tipo: {item.tipo}</Text>
+      
+      <View style={styles.accionesContainer}>
+        <TouchableOpacity 
+          style={styles.botonAccion}
+          onPress={() => toggleMantenimiento(item.id)}
+        >
+          <MaterialIcons 
+            name={item.enMantenimiento ? 'handyman' : 'construction'} 
+            size={20} 
+            color={item.enMantenimiento ? '#FFA500' : '#607D8B'} 
+          />
+          <Text style={styles.textoAccion}>
+            {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.botonAccion, styles.botonEliminar]}
+          onPress={() => eliminarPista(item.id)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#F44336" />
+          <Text style={[styles.textoAccion, styles.textoEliminar]}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3498DB" />
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={styles.titulo}>Panel de Administrador</Text>
+          <Text style={styles.titulo}>Panel de Administración</Text>
           <Text style={styles.subtitulo}>
             Bienvenido, {usuario?.nombre || 'Administrador'}
           </Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitulo}>Agregar Nueva Pista</Text>
-          <View style={styles.agregarForm}>
-            <TextInput
-              placeholder="Nombre de pista"
-              placeholderTextColor="#999"
-              value={nuevoNombre}
-              onChangeText={setNuevoNombre}
-              style={styles.input}
-            />
-            <DropDownPicker
-              open={open}
-              value={nuevoTipo}
-              items={tipos}
-              setOpen={setOpen}
-              setValue={setNuevoTipo}
-              setItems={setTipos}
-              placeholder="Selecciona el tipo de pista"
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
-              zIndex={1000}
-              zIndexInverse={3000}
-            />
-
-            <TouchableOpacity style={styles.botonAgregar} onPress={agregarPista}>
-              <Text style={styles.botonTexto}>Agregar Pista</Text>
-              <Ionicons name="add-circle-outline" size={20} color="white" />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.formularioContainer}>
+          <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre de la pista"
+            value={nuevoNombre}
+            onChangeText={setNuevoNombre}
+            placeholderTextColor="#999"
+          />
+          
+          <DropDownPicker
+            open={open}
+            value={nuevoTipo}
+            items={items}
+            setOpen={setOpen}
+            setValue={setNuevoTipo}
+            setItems={setItems}
+            placeholder="Seleccionar tipo"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            zIndex={3000}
+            zIndexInverse={1000}
+          />
+          
+          <TouchableOpacity 
+            style={styles.botonAgregar}
+            onPress={agregarPista}
+            disabled={!nuevoNombre.trim() || !nuevoTipo}
+          >
+            <Text style={styles.botonAgregarTexto}>Agregar Pista</Text>
+            <Ionicons name="add-circle-outline" size={20} color="white" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.listaContainer}>
-          <Text style={styles.listaTitulo}>Pistas Disponibles ({pistas.length})</Text>
-          <FlatList
-            data={pistas}
-            renderItem={renderPista}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listaContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <Text style={styles.seccionTitulo}>
+            Pistas Disponibles ({pistas.length})
+          </Text>
+          
+          {pistas.length === 0 ? (
+            <Text style={styles.listaVacia}>No hay pistas registradas</Text>
+          ) : (
+            <FlatList
+              data={pistas}
+              renderItem={renderItem}
+              keyExtractor={item => item.id.toString()}
+              scrollEnabled={false} // Para ScrollView anidado
+              refreshing={refreshing}
+              onRefresh={fetchPistas}
+            />
+          )}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
-  container: {
-    flex: 1,
+  scrollContainer: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  listaContent: {
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    maxWidth: 800,
-    alignSelf: 'center',
-    width: '90%',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
-    marginBottom: 25,
+    marginBottom: 24,
+    alignItems: 'center',
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#2C3E50',
-    marginBottom: 5,
-    alignSelf: 'center',
   },
   subtitulo: {
     fontSize: 16,
     color: '#7F8C8D',
-    alignSelf: 'center',
-    textAlign: 'center',
+    marginTop: 4,
   },
-
-  formContainer: {
-    backgroundColor: '#FFFFFF',
+  formularioContainer: {
+    backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 25,
+    padding: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
-    maxWidth: 800,
-    alignSelf: 'center',
-    width: '90%',
   },
-
-  formTitulo: {
+  seccionTitulo: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 15,
-  },
-  agregarForm: {
-    marginBottom: 5,
-    zIndex: 1000, 
+    color: '#34495E',
+    marginBottom: 12,
   },
   input: {
-    backgroundColor: '#F5F7FA',
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#BDC3C7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
     fontSize: 16,
-    color: '#34495E',
+    backgroundColor: '#FDFEFE',
   },
   dropdown: {
-    marginBottom: 15,
-    borderColor: '#E0E0E0',
+    borderColor: '#BDC3C7',
+    marginBottom: 12,
   },
   dropdownContainer: {
-    borderColor: '#E0E0E0',
-    maxHeight: 150,
+    borderColor: '#BDC3C7',
   },
   botonAgregar: {
-    backgroundColor: '#3498DB',
-    padding: 15,
-    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
+    backgroundColor: '#3498DB',
+    borderRadius: 8,
+    padding: 12,
   },
-  botonTexto: {
+  botonAgregarTexto: {
     color: 'white',
     fontWeight: '600',
-    fontSize: 16,
+    marginRight: 8,
   },
-  listaTitulo: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  pistaCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
+  listaContainer: {
+    backgroundColor: 'white',
     borderRadius: 12,
-    marginBottom: 15,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 3,
+  },
+  listaVacia: {
+    textAlign: 'center',
+    color: '#7F8C8D',
+    marginVertical: 16,
+  },
+  pistaCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ECF0F1',
   },
   pistaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  pistaTitulo: {
-    fontSize: 18,
-    fontWeight: '600',
+  pistaNombre: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#2C3E50',
   },
   estadoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
   },
   estadoIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4,
   },
   estadoTexto: {
-    fontSize: 12,
-    color: '#7F8C8D',
-    fontWeight: '500',
-  },
-  pistaSubtitulo: {
     fontSize: 14,
     color: '#7F8C8D',
-    marginBottom: 5,
   },
-  pistaTexto: {
-    color: '#34495E',
-    fontWeight: '500',
+  pistaTipo: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 12,
   },
-  pistaAcciones: {
+  accionesContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 15,
-    gap: 15,
+    justifyContent: 'space-between',
   },
-  accionBtn: {
+  botonAccion: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#ECF0F1',
-    gap: 5,
+    padding: 8,
   },
-  accionTexto: {
+  textoAccion: {
+    marginLeft: 4,
     fontSize: 14,
-    color: '#34495E',
-    fontWeight: '500',
+    color: '#3498DB',
   },
-  eliminarBtn: {
-    backgroundColor: '#FDEDED',
+  botonEliminar: {
+    marginLeft: 16,
   },
-  eliminarTexto: {
+  textoEliminar: {
     color: '#F44336',
   },
 });

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   Alert,
   SafeAreaView,
   FlatList,
@@ -11,15 +11,24 @@ import {
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-
-import { ScrollView } from 'react-native'; 
-
+import DropDownPicker from 'react-native-dropdown-picker';
 
 export default function AdminPanel({ navigation }) {
-  const { usuario, logout } = useUser();
+  const { usuario } = useUser();
+
   const [pistas, setPistas] = useState([]);
   const [nuevoNombre, setNuevoNombre] = useState('');
-  const [nuevoTipo, setNuevoTipo] = useState('');
+  const [nuevoTipo, setNuevoTipo] = useState(null);
+
+  const [open, setOpen] = useState(false);
+  const [tipos, setTipos] = useState([
+    { label: 'Fútbol', value: 'Fútbol' },
+    { label: 'Baloncesto', value: 'Baloncesto' },
+    { label: 'Tenis', value: 'Tenis' },
+    { label: 'Tierra batida', value: 'Tierra batida' },
+    { label: 'Dura', value: 'Dura' },
+    { label: 'Hierba', value: 'Hierba' },
+  ]);
 
   useEffect(() => {
     fetchPistas();
@@ -38,23 +47,38 @@ export default function AdminPanel({ navigation }) {
     }
   };
 
+  // Genera un ID único sencillo basado en timestamp y aleatorio
+  const generarIdUnico = () => {
+    return Date.now() + Math.floor(Math.random() * 1000);
+  };
+
   const agregarPista = () => {
-    if (!nuevoNombre || !nuevoTipo) {
+    if (!nuevoNombre.trim() || !nuevoTipo) {
       Alert.alert('Error', 'Nombre y tipo son obligatorios');
       return;
     }
+
+    // Evitar nombres repetidos
+    const nombreExistente = pistas.some(
+      (p) => p.nombre.toLowerCase().trim() === nuevoNombre.toLowerCase().trim()
+    );
+    if (nombreExistente) {
+      Alert.alert('Error', 'Ya existe una pista con ese nombre');
+      return;
+    }
+
     const nuevaPista = {
-      id: pistas.length + 1,
-      nombre: nuevoNombre,
+      id: generarIdUnico(),
+      nombre: nuevoNombre.trim(),
       tipo: nuevoTipo,
       enMantenimiento: false,
     };
-    setPistas([...pistas, nuevaPista]);
-    setNuevoNombre('');
-    setNuevoTipo('');
-  };
 
-  const eliminarPista = (id) => {
+    setPistas((prev) => [...prev, nuevaPista]);
+    setNuevoNombre('');
+    setNuevoTipo(null);
+  };
+const eliminarPista = (id) => {
     if (typeof window !== 'undefined' && window.confirm) {
       if (window.confirm('¿Seguro que quieres eliminar esta pista?')) {
         setPistas(currentPistas => currentPistas.filter(p => p.id !== id));
@@ -80,55 +104,59 @@ export default function AdminPanel({ navigation }) {
   };
 
   const marcarMantenimiento = (id) => {
-    const actualizadas = pistas.map(p =>
-      p.id === id ? { ...p, enMantenimiento: !p.enMantenimiento } : p
+    setPistas((prevPistas) =>
+      prevPistas.map((p) =>
+        p.id === id ? { ...p, enMantenimiento: !p.enMantenimiento } : p
+      )
     );
-    setPistas(actualizadas);
   };
 
-  const renderPista = ({ item }) => (
-    <View style={styles.pistaCard}>
-      <View style={styles.pistaHeader}>
-        <Text style={styles.pistaTitulo}>{item.nombre}</Text>
-        <View style={styles.estadoContainer}>
-          <View
-            style={[
-              styles.estadoIndicator,
-              { backgroundColor: item.enMantenimiento ? '#FFA500' : '#4CAF50' },
-            ]}
-          />
-          <Text style={styles.estadoTexto}>
-            {item.enMantenimiento ? 'Mantenimiento' : 'Disponible'}
-          </Text>
+  const renderPista = useCallback(
+    ({ item }) => (
+      <View style={styles.pistaCard}>
+        <View style={styles.pistaHeader}>
+          <Text style={styles.pistaTitulo}>{item.nombre}</Text>
+          <View style={styles.estadoContainer}>
+            <View
+              style={[
+                styles.estadoIndicator,
+                { backgroundColor: item.enMantenimiento ? '#FFA500' : '#4CAF50' },
+              ]}
+            />
+            <Text style={styles.estadoTexto}>
+              {item.enMantenimiento ? 'Mantenimiento' : 'Disponible'}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.pistaSubtitulo}>
+          Tipo: <Text style={styles.pistaTexto}>{item.tipo}</Text>
+        </Text>
+        <View style={styles.pistaAcciones}>
+          <TouchableOpacity
+            style={styles.accionBtn}
+            onPress={() => marcarMantenimiento(item.id)}
+          >
+            <MaterialIcons
+              name={item.enMantenimiento ? 'handyman' : 'construction'}
+              size={20}
+              color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
+            />
+            <Text style={styles.accionTexto}>
+              {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.accionBtn, styles.eliminarBtn]}
+            onPress={() => eliminarPista(item.id)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#F44336" />
+            <Text style={[styles.accionTexto, styles.eliminarTexto]}>Eliminar</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      <Text style={styles.pistaSubtitulo}>
-        Tipo: <Text style={styles.pistaTexto}>{item.tipo}</Text>
-      </Text>
-      <View style={styles.pistaAcciones}>
-        <TouchableOpacity
-          style={styles.accionBtn}
-          onPress={() => marcarMantenimiento(item.id)}
-        >
-          <MaterialIcons
-            name={item.enMantenimiento ? 'handyman' : 'construction'}
-            size={20}
-            color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
-          />
-          <Text style={styles.accionTexto}>
-            {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.accionBtn, styles.eliminarBtn]}
-          onPress={() => eliminarPista(item.id)}
-        >
-          <Ionicons name="trash-outline" size={20} color="#F44336" />
-          <Text style={[styles.accionTexto, styles.eliminarTexto]}>Eliminar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    ),
+    [pistas]
   );
 
   return (
@@ -136,7 +164,9 @@ export default function AdminPanel({ navigation }) {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.titulo}>Panel de Administrador</Text>
-          <Text style={styles.subtitulo}>Bienvenido, {usuario?.nombre || 'Administrador'}</Text>
+          <Text style={styles.subtitulo}>
+            Bienvenido, {usuario?.nombre || 'Administrador'}
+          </Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -149,13 +179,20 @@ export default function AdminPanel({ navigation }) {
               onChangeText={setNuevoNombre}
               style={styles.input}
             />
-            <TextInput
-              placeholder="Tipo de pista (ej: Tierra batida, Dura)"
-              placeholderTextColor="#999"
+            <DropDownPicker
+              open={open}
               value={nuevoTipo}
-              onChangeText={setNuevoTipo}
-              style={styles.input}
+              items={tipos}
+              setOpen={setOpen}
+              setValue={setNuevoTipo}
+              setItems={setTipos}
+              placeholder="Selecciona el tipo de pista"
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+              zIndex={1000}
+              zIndexInverse={3000}
             />
+
             <TouchableOpacity style={styles.botonAgregar} onPress={agregarPista}>
               <Text style={styles.botonTexto}>Agregar Pista</Text>
               <Ionicons name="add-circle-outline" size={20} color="white" />
@@ -168,7 +205,7 @@ export default function AdminPanel({ navigation }) {
           <FlatList
             data={pistas}
             renderItem={renderPista}
-            keyExtractor={item => item.id.toString()}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.listaContent}
             showsVerticalScrollIndicator={false}
           />
@@ -182,6 +219,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F5F7FA',
+  },
+  container: {
+    flex: 1,
   },
   listaContent: {
     paddingVertical: 20,
@@ -198,31 +238,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2C3E50',
     marginBottom: 5,
-    alignSelf: 'center'
+    alignSelf: 'center',
   },
   subtitulo: {
     fontSize: 16,
     color: '#7F8C8D',
-    alignSelf:'center',
-    textAlign: 'center'
-    },
+    alignSelf: 'center',
+    textAlign: 'center',
+  },
 
- formContainer: {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 25,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 6,
-  elevation: 3,
-  maxWidth: 800,
-  alignSelf: 'center',
-  width: '90%',
-},
+  formContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '90%',
+  },
 
-  
   formTitulo: {
     fontSize: 18,
     fontWeight: '600',
@@ -231,6 +270,7 @@ const styles = StyleSheet.create({
   },
   agregarForm: {
     marginBottom: 5,
+    zIndex: 1000, 
   },
   input: {
     backgroundColor: '#F5F7FA',
@@ -241,6 +281,14 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     fontSize: 16,
     color: '#34495E',
+  },
+  dropdown: {
+    marginBottom: 15,
+    borderColor: '#E0E0E0',
+  },
+  dropdownContainer: {
+    borderColor: '#E0E0E0',
+    maxHeight: 150,
   },
   botonAgregar: {
     backgroundColor: '#3498DB',
@@ -261,7 +309,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C3E50',
     marginBottom: 15,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   pistaCard: {
     backgroundColor: '#FFFFFF',

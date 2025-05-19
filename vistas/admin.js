@@ -9,7 +9,8 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Dimensions
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -33,17 +34,18 @@ export default function AdminPanel({ navigation }) {
     { label: 'Dura', value: 'Dura' },
     { label: 'Hierba', value: 'Hierba' },
   ]);
+  const [errorNombreRepetido, setErrorNombreRepetido] = useState('');
 
   // Cargar pistas desde la API
   const fetchPistas = async () => {
     try {
       setRefreshing(true);
       const response = await fetch(API_URL);
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${await response.text()}`);
       }
-      
+
       const data = await response.json();
       setPistas(data);
     } catch (error) {
@@ -61,6 +63,7 @@ export default function AdminPanel({ navigation }) {
 
   // Agregar nueva pista
   const agregarPista = async () => {
+    setErrorNombreRepetido('');
     if (!nuevoNombre.trim() || !nuevoTipo) {
       Alert.alert('Error', 'Nombre y tipo son obligatorios');
       return;
@@ -74,18 +77,29 @@ export default function AdminPanel({ navigation }) {
         },
         body: JSON.stringify({
           nombre: nuevoNombre.trim(),
-          tipo: nuevoTipo
+          tipo: nuevoTipo,
         }),
       });
 
-      const data = await response.json();
-      setPistas([...pistas, data]);
+      const responseData = await response.json();
+
+      if (response.status === 409) {
+        setErrorNombreRepetido(responseData.message || 'Ya existe una pista con ese nombre.');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Error ${response.status}`);
+      }
+
+      setPistas((prevPistas) => [...prevPistas, responseData]);
       setNuevoNombre('');
       setNuevoTipo(null);
+      setOpen(false);
       Alert.alert('Éxito', 'Pista agregada correctamente');
     } catch (error) {
       console.error('Error al agregar pista:', error);
-      Alert.alert('Error', 'No se pudo agregar la pista');
+      Alert.alert('Error', error.message || 'No se pudo agregar la pista');
     }
   };
 
@@ -137,15 +151,18 @@ export default function AdminPanel({ navigation }) {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error('Error al actualizar el estado');
+      }
+
       const pistaActualizada = await response.json();
       setPistas(pistas.map(p => p.id === id ? pistaActualizada : p));
     } catch (error) {
       console.error('Error al cambiar estado:', error);
-      Alert.alert('Error', 'No se pudo cambiar el estado');
+      Alert.alert('Error', error.message || 'No se pudo cambiar el estado');
     }
   };
 
-  // Renderizar cada item de la lista
   const renderItem = ({ item }) => (
     <View style={styles.pistaCard}>
       <View style={styles.pistaHeader}>
@@ -160,25 +177,25 @@ export default function AdminPanel({ navigation }) {
           </Text>
         </View>
       </View>
-      
+
       <Text style={styles.pistaTipo}>Tipo: {item.tipo}</Text>
-      
+
       <View style={styles.accionesContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.botonAccion}
           onPress={() => toggleMantenimiento(item.id)}
         >
-          <MaterialIcons 
-            name={item.enMantenimiento ? 'handyman' : 'construction'} 
-            size={20} 
-            color={item.enMantenimiento ? '#FFA500' : '#607D8B'} 
+          <MaterialIcons
+            name={item.enMantenimiento ? 'handyman' : 'construction'}
+            size={20}
+            color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
           />
           <Text style={styles.textoAccion}>
             {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.botonAccion, styles.botonEliminar]}
           onPress={() => eliminarPista(item.id)}
         >
@@ -209,15 +226,21 @@ export default function AdminPanel({ navigation }) {
 
         <View style={styles.formularioContainer}>
           <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
-          
+
           <TextInput
             style={styles.input}
             placeholder="Nombre de la pista"
             value={nuevoNombre}
-            onChangeText={setNuevoNombre}
+            onChangeText={text => {
+              setNuevoNombre(text);
+              setErrorNombreRepetido('');
+            }}
             placeholderTextColor="#999"
           />
-          
+          {errorNombreRepetido ? (
+            <Text style={styles.errorTexto}>{errorNombreRepetido}</Text>
+          ) : null}
+
           <DropDownPicker
             open={open}
             value={nuevoTipo}
@@ -228,10 +251,12 @@ export default function AdminPanel({ navigation }) {
             placeholder="Seleccionar tipo"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
+            zIndex={3000}
+            zIndexInverse={1000}
           />
-          
-          <TouchableOpacity 
-            style={styles.botonAgregar}
+
+          <TouchableOpacity
+            style={[styles.botonAgregar, (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled]}
             onPress={agregarPista}
             disabled={!nuevoNombre.trim() || !nuevoTipo}
           >
@@ -244,7 +269,7 @@ export default function AdminPanel({ navigation }) {
           <Text style={styles.seccionTitulo}>
             Pistas Disponibles ({pistas.length})
           </Text>
-          
+
           {pistas.length === 0 ? (
             <Text style={styles.listaVacia}>No hay pistas registradas</Text>
           ) : (
@@ -252,7 +277,7 @@ export default function AdminPanel({ navigation }) {
               data={pistas}
               renderItem={renderItem}
               keyExtractor={item => item.id.toString()}
-              scrollEnabled={false} 
+              scrollEnabled={false}
               refreshing={refreshing}
               onRefresh={fetchPistas}
             />
@@ -263,14 +288,18 @@ export default function AdminPanel({ navigation }) {
   );
 }
 
+const windowWidth = Dimensions.get('window').width;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
   scrollContainer: {
-    padding: 16,
+    padding: 24,
     paddingBottom: 32,
+    width: windowWidth > 600 ? 600 : '100%',
+    alignSelf: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -282,93 +311,112 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titulo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2C3E50',
   },
   subtitulo: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#7F8C8D',
     marginTop: 4,
   },
   formularioContainer: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+    width: '100%',
   },
   seccionTitulo: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#34495E',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   input: {
     borderWidth: 1,
     borderColor: '#BDC3C7',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 8,
     fontSize: 16,
     backgroundColor: '#FDFEFE',
+    width: '100%',
+  },
+  errorTexto: {
+    color: '#E74C3C',
+    fontWeight: '600',
+    marginBottom: 12,
+    fontSize: 14,
   },
   dropdown: {
     borderColor: '#BDC3C7',
-    marginBottom: 12,
+    marginBottom: 16,
+    borderRadius: 10,
+    width: '100%',
   },
   dropdownContainer: {
     borderColor: '#BDC3C7',
+    borderRadius: 10,
   },
   botonAgregar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#3498DB',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
+    width: '100%',
+  },
+  botonDisabled: {
+    backgroundColor: '#A9CCE3',
   },
   botonAgregarTexto: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '700',
     marginRight: 8,
+    fontSize: 16,
   },
   listaContainer: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+    width: '100%',
   },
   listaVacia: {
     textAlign: 'center',
     color: '#7F8C8D',
-    marginVertical: 16,
+    marginVertical: 20,
+    fontSize: 16,
   },
   pistaCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: 18,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#ECF0F1',
+    width: '100%',
   },
   pistaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   pistaNombre: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#2C3E50',
   },
   estadoContainer: {
@@ -376,38 +424,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   estadoIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 6,
   },
   estadoTexto: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#7F8C8D',
   },
   pistaTipo: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#7F8C8D',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   accionesContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center'
   },
   botonAccion: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-  },
-  textoAccion: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#3498DB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#E1E8ED',
+    marginLeft: 12,
   },
   botonEliminar: {
-    marginLeft: 16,
+    backgroundColor: '#FDECEA',
+  },
+  textoAccion: {
+    marginLeft: 6,
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#34495E',
   },
   textoEliminar: {
-    color: '#F44336',
+    color: '#E74C3C',
   },
 });

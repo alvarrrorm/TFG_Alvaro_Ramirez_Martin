@@ -4,13 +4,13 @@ const router = express.Router();
 // Obtener todas las pistas
 router.get('/', (req, res) => {
   const conexion = req.app.get('conexion');
-  
+
   conexion.query('SELECT * FROM pistas ORDER BY id', (error, results) => {
     if (error) {
       console.error('Error al obtener pistas:', error);
       return res.status(500).json({ error: 'Error al obtener pistas' });
     }
-    
+
     const pistas = results.map(pista => ({
       id: pista.id,
       nombre: pista.nombre,
@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
       disponible: pista.disponible,
       enMantenimiento: pista.disponible === 0
     }));
-    
+
     res.json(pistas);
   });
 });
@@ -32,43 +32,39 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Nombre y tipo son obligatorios' });
   }
 
-  // Verificar si ya existe una pista con ese nombre (insensible a mayúsculas y acentos)
-  conexion.query(
-    'SELECT * FROM pistas WHERE nombre COLLATE utf8_general_ci = ?',
-    [nombre],
-    (error, results) => {
-      if (error) {
-        console.error('Error al verificar pista existente:', error);
-        return res.status(500).json({ error: 'Error al verificar pista existente' });
-      }
+  const sql = "SELECT * FROM pistas WHERE nombre COLLATE utf8mb4_general_ci = ?";
 
-      if (results.length > 0) {
-        return res.status(409).json({ error: 'Ya existe una pista con ese nombre' });
-      }
-
-      // Insertar nueva pista
-      conexion.query(
-        'INSERT INTO pistas (nombre, tipo, disponible) VALUES (?, ?, ?)',
-        [nombre, tipo, 1],
-        (error, results) => {
-          if (error) {
-            console.error('Error al agregar pista:', error);
-            return res.status(500).json({ error: 'Error al agregar pista' });
-          }
-
-          res.status(201).json({
-            id: results.insertId,
-            nombre,
-            tipo,
-            disponible: 1,
-            enMantenimiento: false
-          });
-        }
-      );
+  conexion.query(sql, [nombre], (error, results) => {
+    if (error) {
+      console.error('Error al verificar pista existente:', error);
+      return res.status(500).json({ error: 'Error al verificar pista existente' });
     }
-  );
-});
 
+    if (results.length > 0) {
+      return res.status(409).json({ error: 'Ya existe una pista con ese nombre' });
+    }
+
+    // Insertar nueva pista
+    conexion.query(
+      'INSERT INTO pistas (nombre, tipo, disponible) VALUES (?, ?, ?)',
+      [nombre, tipo, 1],
+      (error, results) => {
+        if (error) {
+          console.error('Error al agregar pista:', error);
+          return res.status(500).json({ error: 'Error al agregar pista' });
+        }
+
+        res.status(201).json({
+          id: results.insertId,
+          nombre,
+          tipo,
+          disponible: 1,
+          enMantenimiento: false
+        });
+      }
+    );
+  });
+});
 
 // Actualizar estado de mantenimiento
 router.patch('/:id', (req, res) => {

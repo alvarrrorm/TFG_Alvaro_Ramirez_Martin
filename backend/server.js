@@ -8,7 +8,9 @@ const conexion = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: 'qwerty',
-  database: 'gestion_polideportivo'
+  database: 'gestion_polideportivo',
+   charset: 'utf8mb4',
+  collation: 'utf8mb4_general_ci'
 });
 
 // Conectar a la base de datos

@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Platform,
   Dimensions
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
@@ -214,78 +215,89 @@ export default function AdminPanel({ navigation }) {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.titulo}>Panel de Administración</Text>
-          <Text style={styles.subtitulo}>
-            Bienvenido, {usuario?.nombre || 'Administrador'}
-          </Text>
-        </View>
+return (
+  <SafeAreaView style={styles.container}>
+    <FlatList
+      data={pistas}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id.toString()}
+      refreshing={refreshing}
+      onRefresh={fetchPistas}
+      ListHeaderComponent={
+        <>
+          <View style={styles.header}>
+            <Text style={styles.titulo}>Panel de Administración</Text>
+            <Text style={styles.subtitulo}>
+              Bienvenido, {usuario?.nombre || 'Administrador'}
+            </Text>
+          </View>
 
-        <View style={styles.formularioContainer}>
-          <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
+          <View style={styles.formularioContainer}>
+            <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre de la pista"
-            value={nuevoNombre}
-            onChangeText={text => {
-              setNuevoNombre(text);
-              setErrorNombreRepetido('');
-            }}
-            placeholderTextColor="#999"
-          />
-          {errorNombreRepetido ? (
-            <Text style={styles.errorTexto}>{errorNombreRepetido}</Text>
-          ) : null}
-
-          <DropDownPicker
-            open={open}
-            value={nuevoTipo}
-            items={items}
-            setOpen={setOpen}
-            setValue={setNuevoTipo}
-            setItems={setItems}
-            placeholder="Seleccionar tipo"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            zIndex={3000}
-            zIndexInverse={1000}
-          />
-
-          <TouchableOpacity
-            style={[styles.botonAgregar, (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled]}
-            onPress={agregarPista}
-            disabled={!nuevoNombre.trim() || !nuevoTipo}
-          >
-            <Text style={styles.botonAgregarTexto}>Agregar Pista</Text>
-            <Ionicons name="add-circle-outline" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.listaContainer}>
-          <Text style={styles.seccionTitulo}>
-            Pistas Disponibles ({pistas.length})
-          </Text>
-
-          {pistas.length === 0 ? (
-            <Text style={styles.listaVacia}>No hay pistas registradas</Text>
-          ) : (
-            <FlatList
-              data={pistas}
-              renderItem={renderItem}
-              keyExtractor={item => item.id.toString()}
-              scrollEnabled={false}
-              refreshing={refreshing}
-              onRefresh={fetchPistas}
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre de la pista"
+              value={nuevoNombre}
+              onChangeText={text => {
+                setNuevoNombre(text);
+                setErrorNombreRepetido('');
+              }}
+              placeholderTextColor="#999"
             />
-          )}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+            {errorNombreRepetido ? (
+              <Text style={styles.errorTexto}>{errorNombreRepetido}</Text>
+            ) : null}
+
+            <DropDownPicker
+              open={open}
+              value={nuevoTipo}
+              items={items}
+              setOpen={setOpen}
+              setValue={setNuevoTipo}
+              setItems={setItems}
+              placeholder="Seleccionar tipo"
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+              zIndex={3000}
+              zIndexInverse={1000}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.botonAgregar,
+                (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled,
+              ]}
+              onPress={agregarPista}
+              disabled={!nuevoNombre.trim() || !nuevoTipo}
+            >
+              <Text style={styles.botonAgregarTexto}>Agregar Pista</Text>
+              <Ionicons name="add-circle-outline" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.listaContainer}>
+            <Text style={styles.seccionTitulo}>
+              Pistas Disponibles ({pistas.length})
+            </Text>
+
+            {pistas.length === 0 && (
+              <Text style={styles.listaVacia}>No hay pistas registradas</Text>
+            )}
+          </View>
+        </>
+      }
+      contentContainerStyle={{
+        padding: 20,
+        width: windowWidth > 600 ? 600 : '100%',
+        alignSelf: 'center',
+      }}
+      style={Platform.OS === 'web' ? { height: '100vh' } : {}}
+    />
+  </SafeAreaView>
+);
+
+
 }
 
 const windowWidth = Dimensions.get('window').width;

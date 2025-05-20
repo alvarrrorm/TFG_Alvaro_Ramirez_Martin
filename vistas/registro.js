@@ -7,13 +7,13 @@ import {
   Alert,
   TouchableOpacity,
   Keyboard,
-  ScrollView
+  Platform,
+  FlatList,
+  Linking
 } from 'react-native';
-import { Linking } from 'react-native';
-
-
 
 export default function Register({ navigation }) {
+  // [Mantengo todos los estados y funciones igual que antes...]
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [usuario, setUsuario] = useState('');
@@ -64,196 +64,250 @@ export default function Register({ navigation }) {
     }
   };
 
-const navigateToPoliticas = () => {
-  Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
-};
+  const navigateToPoliticas = () => {
+    Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
+  };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.container}>
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>Crear cuenta</Text>
+    <View style={styles.overlay}>
+      <FlatList
+        data={[]}
+        keyExtractor={(item, index) => index.toString()}
+        ListHeaderComponent={
+          <View style={styles.container}>
+            <View style={styles.formContainer}>
+              <Text style={styles.title}>Crear cuenta</Text>
+              <Text style={styles.subtitle}>Únete a nuestra comunidad deportiva</Text>
 
-          {mensajeError !== '' && <Text style={styles.errorText}>{mensajeError}</Text>}
+              {mensajeError ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{mensajeError}</Text>
+                </View>
+              ) : null}
 
-          <TextInput
-            placeholder="Nombre completo"
-            style={styles.input}
-            value={nombre}
-            onChangeText={(text) => { setNombre(text); setMensajeError(''); }}
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="Correo electrónico"
-            style={styles.input}
-            value={correo}
-            onChangeText={(text) => { setCorreo(text); setMensajeError(''); }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="Nombre de usuario"
-            style={styles.input}
-            value={usuario}
-            onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}
-            autoCapitalize="none"
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="DNI"
-            style={styles.input}
-            value={dni}
-            onChangeText={(text) => { setDni(text); setMensajeError(''); }}
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="Contraseña"
-            secureTextEntry
-            style={styles.input}
-            value={pass}
-            onChangeText={(text) => { setPass(text); setMensajeError(''); }}
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="Repetir contraseña"
-            secureTextEntry
-            style={styles.input}
-            value={pass_2}
-            onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
-            returnKeyType="next"
-          />
-          <TextInput
-            placeholder="Clave de administrador (opcional)"
-            secureTextEntry
-            style={styles.input}
-            value={claveAdmin}
-            onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
-            returnKeyType="done"
-            onSubmitEditing={Keyboard.dismiss}
-          />
+              <TextInput
+                placeholder="Nombre completo"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={nombre}
+                onChangeText={(text) => { setNombre(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Correo electrónico"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={correo}
+                onChangeText={(text) => { setCorreo(text); setMensajeError(''); }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Nombre de usuario"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={usuario}
+                onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="DNI"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={dni}
+                onChangeText={(text) => { setDni(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Contraseña"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={pass}
+                onChangeText={(text) => { setPass(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Repetir contraseña"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={pass_2}
+                onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Clave de administrador (opcional)"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={claveAdmin}
+                onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
 
-          {/* Checkbox para políticas de privacidad */}
-          <View style={styles.checkboxContainer}>
-            <TouchableOpacity
-              style={styles.checkbox}
-              onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
-            >
-              <View style={[styles.checkboxIcon, aceptoPoliticas && styles.checkboxChecked]}>
-                {aceptoPoliticas && <Text style={styles.checkboxCheckmark}>✓</Text>}
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
+                >
+                  <View style={[styles.checkboxIcon, aceptoPoliticas && styles.checkboxChecked]}>
+                    {aceptoPoliticas && <Text style={styles.checkboxCheckmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxText}>
+                    Acepto las{' '}
+                    <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
+                      políticas de privacidad
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
               </View>
-             <Text style={styles.checkboxText}>
-  Acepto las{' '}
-  <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
-    políticas de privacidad
-  </Text>
-</Text>
 
+              <TouchableOpacity 
+                style={styles.button} 
+                onPress={handleRegister}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Registrarse</Text>
+              </TouchableOpacity>
 
-            </TouchableOpacity>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>o</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity 
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.secondaryButtonText}>¿Ya tienes cuenta? Inicia sesión</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <TouchableOpacity
-            style={[styles.button, styles.shadow]}
-            onPress={handleRegister}
-          >
-            <Text style={styles.buttonText}>Registrarse</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.registerText}>
-            ¿Ya tienes cuenta?{' '}
-            <Text onPress={() => navigation.navigate('Login')} style={styles.link}>
-              Inicia sesión aquí
-            </Text>
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+        }
+        contentContainerStyle={styles.contentContainerStyle}
+        style={Platform.OS === 'web' ? { height: '100vh' } : {}}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+    minHeight: Platform.OS === 'web' ? '100vh' : undefined,
   },
   container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center'
   },
   formContainer: {
-    width: '100%',
-    maxWidth: 500,
-    backgroundColor: '#FFFFFF',
-    padding: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    marginVertical: 20,
-  },
+  width: '100%',
+  maxWidth: 1200,    
+  backgroundColor: 'rgba(255,255,255,0.95)',
+  borderRadius: 25,
+  paddingVertical: 20,  
+  paddingHorizontal: 50, 
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.2,
+  shadowRadius: 20,
+  elevation: 15,
+},
+
+input: {
+  width: '100%',
+  height: 50,          
+  borderWidth: 1,
+  borderColor: '#E5E7EB',
+  borderRadius: 12,
+  paddingHorizontal: 20,
+  marginBottom: 12,    
+  fontSize: 16,
+  backgroundColor: 'rgba(249, 250, 251, 0.8)',
+  color: '#1F2937',
+},
+
+button: {
+  backgroundColor: '#4F46E5',
+  paddingVertical: 16, 
+  borderRadius: 12,
+  marginTop: 10,
+  width: '100%',
+  alignItems: 'center',
+  shadowColor: '#4F46E5',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 5,
+},
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     color: '#1F2937',
-    marginBottom: 25,
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
     width: '100%',
+    height: 55,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    marginBottom: 20,
     fontSize: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(249, 250, 251, 0.8)',
+    color: '#1F2937',
   },
   button: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 10,
-    marginTop: 15,
+    backgroundColor: '#4F46E5',
+    paddingVertical: 18,
+    borderRadius: 12,
+    marginTop: 10,
     width: '100%',
     alignItems: 'center',
-  },
-  shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 5,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  registerText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  link: {
-    color: '#3B82F6',
-    fontWeight: '600',
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    width: '100%',
   },
   errorText: {
     color: '#DC2626',
     fontSize: 16,
-    marginBottom: 15,
     textAlign: 'center',
-    width: '100%',
+    fontWeight: '500',
   },
   checkboxContainer: {
     width: '100%',
@@ -276,8 +330,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
   checkboxCheckmark: {
     color: '#FFFFFF',
@@ -289,8 +343,44 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   politicasLink: {
-    color: '#3B82F6',
+    color: '#4F46E5',
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    color: '#6B7280',
+    paddingHorizontal: 10,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  secondaryButton: {
+    borderWidth: 2,
+    borderColor: '#4F46E5',
+    paddingVertical: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#4F46E5',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  contentContainerStyle: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
 });

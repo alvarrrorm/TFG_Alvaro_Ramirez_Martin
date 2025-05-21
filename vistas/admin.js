@@ -31,9 +31,9 @@ export default function AdminPanel({ navigation }) {
     { label: 'Fútbol', value: 'Fútbol' },
     { label: 'Baloncesto', value: 'Baloncesto' },
     { label: 'Tenis', value: 'Tenis' },
-    { label: 'Tierra batida', value: 'Tierra batida' },
-    { label: 'Dura', value: 'Dura' },
-    { label: 'Hierba', value: 'Hierba' },
+    { label: 'Padel', value: 'Padel' },
+    {label: 'Voley', value: 'Voley'},
+    {label: 'Futbol Sala', value: 'Futbol Sala'}
   ]);
   const [errorNombreRepetido, setErrorNombreRepetido] = useState('');
 
@@ -214,7 +214,6 @@ export default function AdminPanel({ navigation }) {
       </View>
     );
   }
-
 return (
   <SafeAreaView style={styles.container}>
     <FlatList
@@ -232,48 +231,50 @@ return (
             </Text>
           </View>
 
-          <View style={styles.formularioContainer}>
-            <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
+          <View style={{ zIndex: 3000 }}>
+            <View style={styles.formularioContainer}>
+              <Text style={styles.seccionTitulo}>Agregar Nueva Pista</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre de la pista"
-              value={nuevoNombre}
-              onChangeText={text => {
-                setNuevoNombre(text);
-                setErrorNombreRepetido('');
-              }}
-              placeholderTextColor="#999"
-            />
-            {errorNombreRepetido ? (
-              <Text style={styles.errorTexto}>{errorNombreRepetido}</Text>
-            ) : null}
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre de la pista"
+                value={nuevoNombre}
+                onChangeText={text => {
+                  setNuevoNombre(text);
+                  setErrorNombreRepetido('');
+                }}
+                placeholderTextColor="#999"
+              />
+              {errorNombreRepetido ? (
+                <Text style={styles.errorTexto}>{errorNombreRepetido}</Text>
+              ) : null}
 
-            <DropDownPicker
-              open={open}
-              value={nuevoTipo}
-              items={items}
-              setOpen={setOpen}
-              setValue={setNuevoTipo}
-              setItems={setItems}
-              placeholder="Seleccionar tipo"
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
-              zIndex={3000}
-              zIndexInverse={1000}
-            />
+              <DropDownPicker
+                open={open}
+                value={nuevoTipo}
+                items={items}
+                setOpen={setOpen}
+                setValue={setNuevoTipo}
+                setItems={setItems}
+                placeholder="Seleccionar tipo"
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+                zIndex={3000}
+                zIndexInverse={1000}
+              />
 
-            <TouchableOpacity
-              style={[
-                styles.botonAgregar,
-                (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled,
-              ]}
-              onPress={agregarPista}
-              disabled={!nuevoNombre.trim() || !nuevoTipo}
-            >
-              <Text style={styles.botonAgregarTexto}>Agregar Pista</Text>
-              <Ionicons name="add-circle-outline" size={20} color="white" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.botonAgregar,
+                  (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled,
+                ]}
+                onPress={agregarPista}
+                disabled={!nuevoNombre.trim() || !nuevoTipo}
+              >
+                <Text style={styles.botonAgregarTexto}>Agregar Pista</Text>
+                <Ionicons name="add-circle-outline" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.listaContainer}>
@@ -291,13 +292,12 @@ return (
         padding: 20,
         width: windowWidth > 600 ? 600 : '100%',
         alignSelf: 'center',
+        paddingBottom: 40,
       }}
       style={Platform.OS === 'web' ? { height: '100vh' } : {}}
     />
   </SafeAreaView>
 );
-
-
 }
 
 const windowWidth = Dimensions.get('window').width;

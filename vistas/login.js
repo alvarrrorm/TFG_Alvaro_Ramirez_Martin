@@ -19,7 +19,7 @@ export default function Login({ navigation }) {
     setError('');
 
     try {
-      const response = await fetch('http://51.44.193.22:3001/login', {
+      const response = await fetch('https://51.44.193.22:3001/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

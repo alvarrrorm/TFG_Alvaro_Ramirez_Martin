@@ -17,7 +17,7 @@ import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 
-const API_URL = 'http://51.44.193.22:3001/pistas';
+const API_URL = 'https://51.44.193.22:3001/pistas';
 
 export default function AdminPanel({ navigation }) {
   const { usuario } = useUser();

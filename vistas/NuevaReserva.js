@@ -16,7 +16,7 @@ export default function CrearReserva({ navigation }) {
     }
 
     try {
-      const response = await fetch('http://51.44.193.22:3001/reservas', {
+      const response = await fetch('https://51.44.193.22:3001/reservas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

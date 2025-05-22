@@ -42,7 +42,7 @@ export default function Register({ navigation }) {
     }
 
     try {
-      const response = await fetch('http://51.44.193.22:3001/registro', {
+      const response = await fetch('https://51.44.193.22:3001/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, clave_admin: claveAdmin })

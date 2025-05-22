@@ -4,6 +4,7 @@ const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
+const key = fs.readFileSync('./ssl/key.pem');
 
 // Crear conexión MySQL
 const conexion = mysql.createConnection({

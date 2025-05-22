@@ -4,7 +4,6 @@ const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
-const key = fs.readFileSync('./ssl/key.pem');
 
 // Crear conexión MySQL
 const conexion = mysql.createConnection({
@@ -13,7 +12,7 @@ const conexion = mysql.createConnection({
   password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
-  collation: 'utf8mb4_general_ci'
+  // collation no es opción válida para mysql2 connection, mejor quitarla para evitar warnings
 });
 
 conexion.connect((err) => {
@@ -55,19 +54,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Leer certificados
+// Leer certificados SSL
 const sslOptions = {
   key: fs.readFileSync('./ssl/key.pem'),
   cert: fs.readFileSync('./ssl/cert.pem'),
 };
 
-// Servidor HTTPS
 const PORT = 3001;
 https.createServer(sslOptions, app).listen(PORT, () => {
   console.log(`🚀 Servidor HTTPS escuchando en https://51.44.193.22:${PORT}`);
 });
 
-// Cerrar conexión
+// Cerrar conexión MySQL al cerrar servidor
 process.on('SIGINT', () => {
   conexion.end(() => {
     console.log('🔌 Conexión MySQL cerrada');

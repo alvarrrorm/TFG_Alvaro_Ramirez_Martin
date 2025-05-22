@@ -5,9 +5,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 
-// Crear conexión MySQL
+// Crear conexión a MySQL
 const conexion = mysql.createConnection({
-  host: '51.44.193.22',
+  host: 'localhost',
   user: 'root',
   password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
@@ -22,18 +22,8 @@ conexion.connect((err) => {
   console.log('✅ Conectado a la base de datos MySQL');
 });
 
-conexion.on('error', (err) => {
-  console.error('❌ Error en la conexión MySQL:', err);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-    console.log('🔄 Conexión MySQL perdida. Deberías reiniciar el servidor.');
-  } else {
-    throw err;
-  }
-});
-
 const app = express();
 app.set('conexion', conexion);
-
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -44,7 +34,7 @@ app.use('/registro', require('./rutas/registro'));
 app.use('/pistas', require('./rutas/pistas'));
 
 app.get('/', (req, res) => {
-  res.send('API del Polideportivo funcionando con HTTPS');
+  res.send('🚀 API del Polideportivo funcionando en HTTPS');
 });
 
 // Manejo de errores
@@ -53,21 +43,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Leer certificados SSL generados por Certbot en ruta estándar
+// Crear servidor HTTPS
 const sslOptions = {
   key: fs.readFileSync('/etc/letsencrypt/live/deppo.es/privkey.pem'),
   cert: fs.readFileSync('/etc/letsencrypt/live/deppo.es/fullchain.pem'),
 };
 
-const PORT = 443;
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`🚀 Servidor HTTPS escuchando en https://deppo.es`);
-});
-
-// Cerrar conexión MySQL al cerrar servidor
-process.on('SIGINT', () => {
-  conexion.end(() => {
-    console.log('🔌 Conexión MySQL cerrada');
-    process.exit();
-  });
+https.createServer(sslOptions, app).listen(443, () => {
+  console.log('✅ Servidor HTTPS escuchando en puerto 443');
 });

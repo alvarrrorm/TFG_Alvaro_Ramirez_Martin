@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 
 export default function Register({ navigation }) {
-  // [Mantengo todos los estados y funciones igual que antes...]
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [usuario, setUsuario] = useState('');
@@ -43,7 +42,7 @@ export default function Register({ navigation }) {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/registro', {
+      const response = await fetch('http://51.44.193.22:3001/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, clave_admin: claveAdmin })

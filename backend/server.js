@@ -1,66 +1,68 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 
 // Crear conexión MySQL
 const conexion = mysql.createConnection({
-  host: 'localhost',
+  host: '51.44.193.22',
   user: 'root',
-  password: 'qwerty',
+  password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
-   charset: 'utf8mb4',
+  charset: 'utf8mb4',
   collation: 'utf8mb4_general_ci'
 });
 
-// Conectar a la base de datos
 conexion.connect((err) => {
   if (err) {
-    console.error('Error al conectar a la base de datos:', err);
+    console.error('❌ Error al conectar a la base de datos:', err);
     process.exit(1);
   }
-  console.log('Conectado a la base de datos MySQL');
+  console.log('✅ Conectado a la base de datos MySQL');
 });
 
-// Crear instancia de Express
-const app = express();
+conexion.on('error', (err) => {
+  console.error('❌ Error en la conexión MySQL:', err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+    console.log('🔄 Conexión MySQL perdida. Deberías reiniciar el servidor.');
+  } else {
+    throw err;
+  }
+});
 
-// Guardar la conexión en app para acceder desde rutas
+const app = express();
 app.set('conexion', conexion);
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
-const loginRuta = require('./rutas/login');
-const registroRuta = require('./rutas/registro');
-const pistasRuta = require('./rutas/pistas');
+app.use('/login', require('./rutas/login'));
+app.use('/registro', require('./rutas/registro'));
+app.use('/pistas', require('./rutas/pistas'));
 
-app.use('/login', loginRuta);
-app.use('/registro', registroRuta);
-app.use('/pistas', pistasRuta);
-
-// Ruta de prueba
+// Ruta raíz
 app.get('/', (req, res) => {
-  res.send('API del Polideportivo');
+  res.send('API del Polideportivo funcionando');
 });
 
 // Manejo de errores
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Error no controlado:', err.stack);
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Iniciar servidor
-const PORT = 3001;
+// Escuchar en puerto (desde entorno o por defecto 3001)
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
 
-// Cerrar conexión al terminar
+// Cerrar conexión
 process.on('SIGINT', () => {
-  conexion.end();
-  process.exit();
+  conexion.end(() => {
+    console.log('🔌 Conexión MySQL cerrada');
+    process.exit();
+  });
 });

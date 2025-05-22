@@ -12,7 +12,6 @@ const conexion = mysql.createConnection({
   password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
-  // collation no es opción válida para mysql2 connection, mejor quitarla para evitar warnings
 });
 
 conexion.connect((err) => {
@@ -54,15 +53,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Leer certificados SSL
+// Leer certificados SSL generados por Certbot en ruta estándar
 const sslOptions = {
-  key: fs.readFileSync('./ssl/key.pem'),
-  cert: fs.readFileSync('./ssl/cert.pem'),
+  key: fs.readFileSync('/etc/letsencrypt/live/deppo.es/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/deppo.es/fullchain.pem'),
 };
 
-const PORT = 3001;
+const PORT = 443;
 https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`🚀 Servidor HTTPS escuchando en https://51.44.193.22:${PORT}`);
+  console.log(`🚀 Servidor HTTPS escuchando en https://deppo.es`);
 });
 
 // Cerrar conexión MySQL al cerrar servidor

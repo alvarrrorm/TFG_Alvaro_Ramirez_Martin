@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@react-native-community/datetimepicker": "^8.3.0",
+    "@react-native-picker/picker": "2.9.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -19,6 +21,6 @@
     "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
     "mysql2": "^3.14.0",
-    "@react-native-picker/picker": "2.9.0"
+    "react-native-vector-icons": "^10.2.0"
   }
 }

@@ -1,19 +1,16 @@
 const express = require('express');
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 
-// Conexión a MySQL
+// Crear conexión MySQL
 const conexion = mysql.createConnection({
   host: '51.44.193.22',
-  user: 'alvaro',
-  password: '5Alvaror.',
-  port: 3306,
+  user: 'root',
+  password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
+  collation: 'utf8mb4_general_ci'
 });
 
 conexion.connect((err) => {
@@ -24,6 +21,15 @@ conexion.connect((err) => {
   console.log('✅ Conectado a la base de datos MySQL');
 });
 
+conexion.on('error', (err) => {
+  console.error('❌ Error en la conexión MySQL:', err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+    console.log('🔄 Conexión MySQL perdida. Deberías reiniciar el servidor.');
+  } else {
+    throw err;
+  }
+});
+
 const app = express();
 app.set('conexion', conexion);
 
@@ -31,15 +37,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Ruta simple para testear que el backend funciona
-app.get('/', (req, res) => {
-  res.send('Backend de gestión polideportivo activo 🚀');
-});
-
-// Rutas API
+// Rutas
 app.use('/login', require('./rutas/login'));
 app.use('/registro', require('./rutas/registro'));
 app.use('/pistas', require('./rutas/pistas'));
+
+// Ruta raíz
+app.get('/', (req, res) => {
+  res.send('API del Polideportivo funcionando');
+});
 
 // Manejo de errores
 app.use((err, req, res, next) => {
@@ -47,22 +53,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// SSL certificados Let's Encrypt
-const sslOptions = {
-  key: fs.readFileSync('/etc/letsencrypt/live/deppo.es/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/deppo.es/fullchain.pem'),
-};
-
-// Servidor HTTPS
-https.createServer(sslOptions, app).listen(35000, () => {
-  console.log('🚀 Servidor HTTPS escuchando en https://deppo.es');
+// Escuchar en puerto (desde entorno o por defecto 3001)
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
 
-// Redirigir HTTP a HTTPS
-http.createServer((req, res) => {
-  const host = req.headers['host'].replace(/:\d+$/, '');
-  res.writeHead(301, { Location: `https://${host}${req.url}` });
-  res.end();
-}).listen(80, () => {
-  console.log('🔄 Servidor HTTP escuchando en puerto 80 y redirigiendo a HTTPS');
+// Cerrar conexión
+process.on('SIGINT', () => {
+  conexion.end(() => {
+    console.log('🔌 Conexión MySQL cerrada');
+    process.exit();
+  });
 });

@@ -8,8 +8,8 @@ const mysql = require('mysql2');
 // Crear conexión a MySQL
 const conexion = mysql.createConnection({
   host: 'localhost',
-  user: 'root',
-  password: '5Alvarorm.!',
+  user: 'alvaro',
+  password: '5Alvaror.',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
 });
@@ -49,6 +49,6 @@ const sslOptions = {
   cert: fs.readFileSync('/etc/letsencrypt/live/deppo.es/fullchain.pem'),
 };
 
-https.createServer(sslOptions, app).listen(443, () => {
+https.createServer(sslOptions, app).listen(8443, () => {
   console.log('🚀 Servidor HTTPS escuchando en https://deppo.es');
 });

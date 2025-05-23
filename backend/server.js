@@ -1,4 +1,6 @@
 const express = require('express');
+const https = require('https');
+const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
@@ -10,7 +12,7 @@ const conexion = mysql.createConnection({
   password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
-  collation: 'utf8mb4_general_ci'
+  // collation no es opción válida para mysql2 connection, mejor quitarla para evitar warnings
 });
 
 conexion.connect((err) => {
@@ -42,9 +44,8 @@ app.use('/login', require('./rutas/login'));
 app.use('/registro', require('./rutas/registro'));
 app.use('/pistas', require('./rutas/pistas'));
 
-// Ruta raíz
 app.get('/', (req, res) => {
-  res.send('API del Polideportivo funcionando');
+  res.send('API del Polideportivo funcionando con HTTPS');
 });
 
 // Manejo de errores
@@ -53,13 +54,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Escuchar en puerto (desde entorno o por defecto 3001)
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
+// Leer certificados SSL
+const sslOptions = {
+  key: fs.readFileSync('./ssl/key.pem'),
+  cert: fs.readFileSync('./ssl/cert.pem'),
+};
+
+const PORT = 3001;
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`🚀 Servidor HTTPS escuchando en https://51.44.193.22:${PORT}`);
 });
 
-// Cerrar conexión
+// Cerrar conexión MySQL al cerrar servidor
 process.on('SIGINT', () => {
   conexion.end(() => {
     console.log('🔌 Conexión MySQL cerrada');

@@ -8,9 +8,10 @@ const mysql = require('mysql2');
 
 // Conexión a MySQL (ajusta credenciales)
 const conexion = mysql.createConnection({
-  host: 'localhost',
+  host: '51.44.193.22',
   user: 'alvaro',
   password: '5Alvaror.',
+  port: 3306,
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
 });

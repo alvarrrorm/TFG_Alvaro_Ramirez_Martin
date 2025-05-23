@@ -12,7 +12,6 @@ const conexion = mysql.createConnection({
   password: '5Alvarorm.!',
   database: 'gestion_polideportivo',
   charset: 'utf8mb4',
-  // collation no es opción válida para mysql2 connection, mejor quitarla para evitar warnings
 });
 
 conexion.connect((err) => {

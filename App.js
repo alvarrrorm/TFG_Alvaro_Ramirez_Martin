@@ -1,20 +1,37 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { UserProvider } from './contexto/UserContex';
+import Login from './vistas/login';
+import Registro from './vistas/registro';
+import Inicio from './vistas/inicio';
+import Reservas from './vistas/reservas';
+//import CrearReserva from './vistas/NuevaReserva';
+import AdminPanel from './vistas/admin';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <UserProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Inicio">
+          <Stack.Screen name="Inicio" component={Inicio} options={{ headerShown: false }}
+          />
+
+          <Stack.Screen name="Login" component={Login} options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Registro" component={Registro} options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Reservas" component={Reservas} options={{headerShown: false}} />
+          
+          <Stack.Screen
+            name="AdminPanel"
+            component={AdminPanel}
+            options={{ title: 'Panel de Administración' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </UserProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

@@ -114,22 +114,23 @@ router.delete('/:id', (req, res) => {
   const { id } = req.params;
   const conexion = req.app.get('conexion');
 
-  conexion.query(
-    'DELETE FROM pistas WHERE id = ?',
-    [id],
-    (error, results) => {
-      if (error) {
-        console.error('Error al eliminar pista:', error);
-        return res.status(500).json({ error: 'Error al eliminar pista' });
-      }
-
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ error: 'Pista no encontrada' });
-      }
-
-      res.json({ message: 'Pista eliminada correctamente' });
+ conexion.query(
+  'DELETE FROM pistas WHERE id = ?',
+  [id],
+  (error, results) => {
+    if (error) {
+      console.error('Error al eliminar pista:', error);
+      return res.status(500).json({ error: 'Error al eliminar pista' });
     }
-  );
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Pista no encontrada' });
+    }
+
+    res.json({ message: 'Pista eliminada correctamente' });
+  }
+);
+
 });
 
 module.exports = router;

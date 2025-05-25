@@ -104,29 +104,42 @@ export default function AdminPanel({ navigation }) {
     }
   };
 
-  // Eliminar pista
+// Eliminar pista
+
+
 const eliminarPista = (id) => {
-  Alert.alert(
-    'Confirmar eliminación',
-    '¿Estás seguro de que deseas eliminar esta pista?',
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => handleEliminar(id),
-      },
-    ]
-  );
+  if (Platform.OS === 'web') {
+    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar esta pista?');
+    if (confirmar) {
+      handleEliminar(id);
+    }
+  } else {
+    Alert.alert(
+      'Confirmar eliminación',
+      '¿Estás seguro de que deseas eliminar esta pista?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => handleEliminar(id),
+        },
+      ]
+    );
+  }
 };
 
 const handleEliminar = async (id) => {
+  console.log('Intentando eliminar pista con id:', id);  // DEBUG
+
   try {
     const response = await fetch(`${API_URL}/${id}`, {
       method: 'DELETE',
     });
 
     if (!response.ok) {
+      const text = await response.text();
+      console.error('Error response al eliminar:', text);  // DEBUG
       throw new Error('Error al eliminar la pista');
     }
 

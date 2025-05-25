@@ -9,8 +9,11 @@ import {
   Keyboard,
   Platform,
   FlatList,
-  Linking
+  Linking,
+  Dimensions,
 } from 'react-native';
+
+const screenHeight = Dimensions.get('window').height;
 
 export default function Register({ navigation }) {
   const [nombre, setNombre] = useState('');
@@ -71,6 +74,7 @@ export default function Register({ navigation }) {
     <View style={styles.overlay}>
       <FlatList
         data={[]}
+        keyboardShouldPersistTaps="handled"
         keyExtractor={(item, index) => index.toString()}
         ListHeaderComponent={
           <View style={styles.container}>
@@ -189,7 +193,7 @@ export default function Register({ navigation }) {
           </View>
         }
         contentContainerStyle={styles.contentContainerStyle}
-        style={Platform.OS === 'web' ? { height: '100vh' } : {}}
+        style={Platform.OS === 'web' ? { height: screenHeight } : {}}
       />
     </View>
   );
@@ -199,119 +203,80 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 10,
     justifyContent: 'center',
-    padding: 20,
-    minHeight: Platform.OS === 'web' ? '100vh' : undefined,
   },
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
-    maxWidth: 1200,
-    alignSelf: 'center'
+    alignItems: 'center',
   },
   formContainer: {
-  width: '100%',
-  maxWidth: 1200,    
-  backgroundColor: 'rgba(255,255,255,0.95)',
-  borderRadius: 25,
-  paddingVertical: 20,  
-  paddingHorizontal: 50, 
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 10 },
-  shadowOpacity: 0.2,
-  shadowRadius: 20,
-  elevation: 15,
-},
-
-input: {
-  width: '100%',
-  height: 50,          
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-  borderRadius: 12,
-  paddingHorizontal: 20,
-  marginBottom: 12,    
-  fontSize: 16,
-  backgroundColor: 'rgba(249, 250, 251, 0.8)',
-  color: '#1F2937',
-},
-
-button: {
-  backgroundColor: '#4F46E5',
-  paddingVertical: 16, 
-  borderRadius: 12,
-  marginTop: 10,
-  width: '100%',
-  alignItems: 'center',
-  shadowColor: '#4F46E5',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 8,
-  elevation: 5,
-},
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 600 : '100%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+  },
   title: {
-    fontSize: 36,
+    fontSize: Platform.OS === 'web' ? 32 : 26,
     fontWeight: '800',
     color: '#1F2937',
     marginBottom: 5,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#6B7280',
     fontWeight: '500',
-    marginBottom: 30,
+    marginBottom: 25,
     textAlign: 'center',
   },
   input: {
     width: '100%',
-    height: 55,
+    height: 50,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 15,
     fontSize: 16,
     backgroundColor: 'rgba(249, 250, 251, 0.8)',
     color: '#1F2937',
   },
   button: {
     backgroundColor: '#4F46E5',
-    paddingVertical: 18,
+    paddingVertical: 16,
     borderRadius: 12,
-    marginTop: 10,
     width: '100%',
     alignItems: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: 10,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   errorContainer: {
     backgroundColor: '#FEE2E2',
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
     marginBottom: 20,
     width: '100%',
   },
   errorText: {
     color: '#DC2626',
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    fontWeight: '500',
   },
   checkboxContainer: {
     width: '100%',
     marginBottom: 20,
-    marginTop: 10,
   },
   checkbox: {
     flexDirection: 'row',
@@ -365,7 +330,7 @@ button: {
   secondaryButton: {
     borderWidth: 2,
     borderColor: '#4F46E5',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     width: '100%',
     alignItems: 'center',
@@ -378,8 +343,7 @@ button: {
   contentContainerStyle: {
     flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
 });

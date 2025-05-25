@@ -6,7 +6,7 @@ import Login from './vistas/login';
 import Registro from './vistas/registro';
 import Inicio from './vistas/inicio';
 import Reservas from './vistas/reservas';
-//import CrearReserva from './vistas/NuevaReserva';
+import CrearReserva from './vistas/NuevaReserva';
 import AdminPanel from './vistas/admin';
 
 const Stack = createStackNavigator();
@@ -16,15 +16,19 @@ export default function App() {
     <UserProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Inicio">
-          <Stack.Screen name="Inicio" component={Inicio} options={{ headerShown: false }}
+          <Stack.Screen name="Inicio" component={Inicio} 
           />
 
-          <Stack.Screen name="Login" component={Login} options={{ headerShown: false }}
+          <Stack.Screen name="Login" component={Login} 
           />
-          <Stack.Screen name="Registro" component={Registro} options={{ headerShown: false }}
+          <Stack.Screen name="Registro" component={Registro} 
           />
-          <Stack.Screen name="Reservas" component={Reservas} options={{headerShown: false}} />
-          
+          <Stack.Screen name="Reservas" component={Reservas}  />
+          <Stack.Screen
+            name="CrearReserva"
+            component={CrearReserva}
+            options={{ title: 'Nueva Reserva' }}/>
+            
           <Stack.Screen
             name="AdminPanel"
             component={AdminPanel}

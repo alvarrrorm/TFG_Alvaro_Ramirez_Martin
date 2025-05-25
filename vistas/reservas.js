@@ -53,7 +53,7 @@ export default function Reservas({ navigation }) {
             styles.reserveButton,
             isHoveredReserve && styles.buttonHovered
           ]}
-          onPress={() => navigation.navigate('NuevaReserva')}
+          onPress={() => navigation.navigate('CrearReserva')}
           activeOpacity={0.9}
           onMouseEnter={() => Platform.OS === 'web' && setIsHoveredReserve(true)}
           onMouseLeave={() => Platform.OS === 'web' && setIsHoveredReserve(false)}
@@ -121,7 +121,6 @@ export default function Reservas({ navigation }) {
     </View>
   );
 
-  // Renderizado de cada reserva si tienes datos (puedes modificarlo o eliminar si no usas reservas aún)
   const renderReserva = ({ item }) => (
     <View style={styles.reservaItem}>
       <Text>{item.nombre}</Text>

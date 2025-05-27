@@ -5,7 +5,7 @@ import { UserProvider } from './contexto/UserContex';
 import Login from './vistas/login';
 import Registro from './vistas/registro';
 import Inicio from './vistas/inicio';
-import Reservas from './vistas/reservas';
+import Selector from './vistas/selector';
 import CrearReserva from './vistas/NuevaReserva';
 import AdminPanel from './vistas/admin';
 
@@ -16,14 +16,14 @@ export default function App() {
     <UserProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Inicio">
-          <Stack.Screen name="Inicio" component={Inicio} 
+          <Stack.Screen name="Inicio" component={Inicio}
           />
 
           <Stack.Screen name="Login" component={Login} 
           />
           <Stack.Screen name="Registro" component={Registro} 
           />
-          <Stack.Screen name="Reservas" component={Reservas}  />
+          <Stack.Screen name="Reservas" component={Selector}  />
           <Stack.Screen
             name="CrearReserva"
             component={CrearReserva}

@@ -12,9 +12,9 @@ import {
 import { useUser } from '../contexto/UserContex';
 import { Ionicons } from '@expo/vector-icons';
 
-const datosEjemplo = []; // Aquí puedes poner reservas para renderizar con renderItem
 
-export default function Reservas({ navigation }) {
+
+export default function Selector({ navigation }) {
   const { usuario, rol, logout } = useUser();
   const [isHoveredReserve, setIsHoveredReserve] = useState(false);
   const [isHoveredAdmin, setIsHoveredAdmin] = useState(false);

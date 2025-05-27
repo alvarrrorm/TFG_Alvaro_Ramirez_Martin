@@ -4,9 +4,9 @@ const mysql = require('mysql2');
 
 // Configuración de la conexión a MySQL
 const conexion = mysql.createConnection({
-  host: '51.44.192.22',      // por ejemplo: 'localhost' o IP pública
-  user: 'alvaro',        // ejemplo: 'alvaro'
-  password: '5Alvaror.', // ejemplo: '5Alvaror.'
+  host: 'localhost',      // por ejemplo: 'localhost' o IP pública
+  user: 'root',        // ejemplo: 'alvaro'
+  password: 'qwerty', // ejemplo: '5Alvaror.'
   database: 'gestion_polideportivo',   // ejemplo: 'gestion_polideportivo'
   port: 3306,
   charset: 'utf8mb4',

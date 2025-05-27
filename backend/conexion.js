@@ -2,9 +2,9 @@ const mysql = require('mysql2');
 
 // Crear conexión normal
 const conexion = mysql.createConnection({
-  host: '51.44.193.22',
-  user: 'alvaro',
-  password: '5Alvaror.', //
+  host: 'localhost',
+  user: 'root',
+  password: 'qwerty.', //
   database: 'gestion_polideportivo',
   port: 3306,
   charset: 'utf8mb4',

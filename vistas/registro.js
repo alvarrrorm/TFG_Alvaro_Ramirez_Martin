@@ -25,47 +25,57 @@ export default function Register({ navigation }) {
   const [claveAdmin, setClaveAdmin] = useState('');
   const [mensajeError, setMensajeError] = useState('');
   const [aceptoPoliticas, setAceptoPoliticas] = useState(false);
+  const [telefono, setTelefono] = useState('');
 
+  // Manejar el registro del usuario
   const handleRegister = async () => {
-    Keyboard.dismiss();
+  Keyboard.dismiss();
 
-    if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
-      setMensajeError('Por favor, completa todos los campos');
-      return;
+  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
+    setMensajeError('Por favor, completa todos los campos');
+    return;
+  }
+
+  if (!correoValido.test(correo)) {
+    setMensajeError('Correo electrónico no válido');
+    return;
+  }
+
+  if (pass !== pass_2) {
+    setMensajeError('Las contraseñas no coinciden');
+    return;
+  }
+
+  if (!aceptoPoliticas) {
+    setMensajeError('Debes aceptar las políticas de privacidad');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:3001/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2,telefono, clave_admin: claveAdmin })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setMensajeError('');
+      Alert.alert('Éxito', 'Usuario registrado con éxito');
+      navigation.navigate('Login');
+    } else {
+      setMensajeError(data.error || 'No se pudo registrar el usuario');
     }
+  } catch (error) {
+    console.error(error);
+    setMensajeError('No se pudo conectar con el servidor');
+  }
+};
 
-    if (pass !== pass_2) {
-      setMensajeError('Las contraseñas no coinciden');
-      return;
-    }
-
-    if (!aceptoPoliticas) {
-      setMensajeError('Debes aceptar las políticas de privacidad');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3001/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, clave_admin: claveAdmin })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMensajeError('');
-        Alert.alert('Éxito', 'Usuario registrado con éxito');
-        navigation.navigate('Login');
-      } else {
-        setMensajeError(data.error || 'No se pudo registrar el usuario');
-      }
-    } catch (error) {
-      console.error(error);
-      setMensajeError('No se pudo conectar con el servidor');
-    }
-  };
-
+// Navegar a las políticas de privacidad
   const navigateToPoliticas = () => {
     Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
   };
@@ -116,13 +126,30 @@ export default function Register({ navigation }) {
                 returnKeyType="next"
               />
               <TextInput
-                placeholder="DNI"
+                placeholder="DNI (Con Letra)"
                 placeholderTextColor="#9CA3AF"
                 style={styles.input}
                 value={dni}
                 onChangeText={(text) => { setDni(text); setMensajeError(''); }}
                 returnKeyType="next"
               />
+              <TextInput
+                placeholder="Número de Teléfono"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={telefono}
+                onChangeText={(text) => {
+                  // Solo guarda números
+                  const soloNumeros = text.replace(/[^0-9]/g, '');
+                  setTelefono(soloNumeros);
+                  setMensajeError('');
+                }}
+                keyboardType="numeric"
+                maxLength={15}
+                returnKeyType="next"
+              />
+
+
               <TextInput
                 placeholder="Contraseña"
                 placeholderTextColor="#9CA3AF"
@@ -169,8 +196,8 @@ export default function Register({ navigation }) {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
-                style={styles.button} 
+              <TouchableOpacity
+                style={styles.button}
                 onPress={handleRegister}
                 activeOpacity={0.8}
               >
@@ -183,7 +210,7 @@ export default function Register({ navigation }) {
                 <View style={styles.dividerLine} />
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => navigation.navigate('Login')}
               >

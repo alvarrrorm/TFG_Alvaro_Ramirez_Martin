@@ -15,24 +15,48 @@ export default function App() {
   return (
     <UserProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Inicio">
-          <Stack.Screen name="Inicio" component={Inicio}
+        <Stack.Navigator
+          initialRouteName="Inicio"
+          screenOptions={{
+            headerTitle: '',               
+            headerBackTitleVisible: false, 
+            headerStyle: {
+              backgroundColor: 'transparent',  
+              elevation: 0,   
+              shadowOpacity: 0, 
+            },
+            headerTintColor: '#000', 
+          }}
+        >
+          <Stack.Screen 
+            name="Inicio" 
+            component={Inicio} 
+            options={{
+              headerShown: false,        
+            }}
           />
-
-          <Stack.Screen name="Login" component={Login} 
+          <Stack.Screen 
+            name="Login" 
+            component={Login} 
           />
-          <Stack.Screen name="Registro" component={Registro} 
+          <Stack.Screen 
+            name="Registro" 
+            component={Registro} 
           />
-          <Stack.Screen name="Reservas" component={Selector}  />
+          <Stack.Screen 
+            name="Reservas" 
+            component={Selector} 
+            options={{
+              headerShown: false,         
+            }}
+          />
           <Stack.Screen
             name="CrearReserva"
             component={CrearReserva}
-            options={{ title: 'Nueva Reserva' }}/>
-            
+          />
           <Stack.Screen
             name="AdminPanel"
             component={AdminPanel}
-            options={{ title: 'Panel de Administración' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

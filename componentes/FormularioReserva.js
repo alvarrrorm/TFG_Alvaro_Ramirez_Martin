@@ -80,12 +80,10 @@ export default function FormularioReserva({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Usuario</Text>
+      <Text style={styles.label}>Nombre</Text>
       <View style={styles.userContainer}>
         <Text style={styles.userText}>{nombre || 'No identificado'}</Text>
-        <Text style={[styles.userText, { fontSize: 12, color: '#555' }]}>
-          DNI: {dni || 'No disponible'}
-        </Text>
+       
       </View>
 
       <Text style={styles.label}>Selecciona la pista</Text>

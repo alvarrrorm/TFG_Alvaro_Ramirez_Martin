@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePickerNative from '@react-native-community/datetimepicker';
+import { Checkbox } from 'react-native-paper'; // Añadimos el Checkbox
 
 import PistaSelector from './PistaSelector';
 import CalendarioWeb from './CalendarioWeb'; 
@@ -24,6 +25,7 @@ export default function FormularioReserva({ navigation }) {
     fecha: '',
     horaInicio: '08:00',
     horaFin: '09:00',
+    ludoteca: false, // Nuevo campo para la ludoteca
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,7 @@ export default function FormularioReserva({ navigation }) {
           fecha: form.fecha,
           hora_inicio: form.horaInicio,
           hora_fin: form.horaFin,
+          ludoteca: form.ludoteca, // Incluimos el campo ludoteca
           estado: 'pendiente',
         }),
       });
@@ -83,7 +86,6 @@ export default function FormularioReserva({ navigation }) {
       <Text style={styles.label}>Nombre</Text>
       <View style={styles.userContainer}>
         <Text style={styles.userText}>{nombre || 'No identificado'}</Text>
-       
       </View>
 
       <Text style={styles.label}>Selecciona la pista</Text>
@@ -156,6 +158,16 @@ export default function FormularioReserva({ navigation }) {
             ))}
           </Picker>
         </View>
+      </View>
+
+      {/* Checkbox para la ludoteca */}
+      <View style={styles.checkboxContainer}>
+        <Checkbox
+          status={form.ludoteca ? 'checked' : 'unchecked'}
+          onPress={() => setForm({ ...form, ludoteca: !form.ludoteca })}
+          color="#1976D2"
+        />
+        <Text style={styles.checkboxLabel}>Incluir servicio de ludoteca</Text>
       </View>
 
       <TouchableOpacity
@@ -253,6 +265,16 @@ const styles = StyleSheet.create({
   picker: {
     height: 44,
     color: '#333',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#444',
   },
   boton: {
     backgroundColor: '#1976D2',

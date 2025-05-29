@@ -4,7 +4,7 @@ const mysql = require('mysql2');
 const conexion = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'qwerty.', //
+  password: 'qwerty', //
   database: 'gestion_polideportivo',
   port: 3306,
   charset: 'utf8mb4',

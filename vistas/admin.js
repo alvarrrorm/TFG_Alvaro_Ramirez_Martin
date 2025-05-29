@@ -15,6 +15,7 @@ import {
   SectionList,
   RefreshControl,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -31,8 +32,10 @@ export default function AdminPanel({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoTipo, setNuevoTipo] = useState(null);
+  const [nuevoPrecio, setNuevoPrecio] = useState('');
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
+    
     { label: 'Fútbol', value: 'Fútbol' },
     { label: 'Baloncesto', value: 'Baloncesto' },
     { label: 'Tenis', value: 'Tenis' },
@@ -44,19 +47,20 @@ export default function AdminPanel({ navigation }) {
   const [activeTab, setActiveTab] = useState('pistas');
   const { width, height } = useWindowDimensions();
   const isLargeScreen = width >= 768;
+  const [modalVisible, setModalVisible] = useState(false);
+  const [pistaEditando, setPistaEditando] = useState(null);
+  const [precioEditando, setPrecioEditando] = useState('');
 
   // Cargar pistas y reservas desde la API
   const fetchData = useCallback(async () => {
     try {
       setRefreshing(true);
       
-      // Cargar pistas
       const pistasResponse = await fetch(API_URL);
       if (!pistasResponse.ok) throw new Error(`Error ${pistasResponse.status}: ${await pistasResponse.text()}`);
       const pistasData = await pistasResponse.json();
       setPistas(pistasData);
       
-      // Cargar reservas
       const reservasResponse = await fetch(RESERVAS_URL);
       if (!reservasResponse.ok) throw new Error(`Error ${reservasResponse.status}: ${await reservasResponse.text()}`);
       const reservasData = await reservasResponse.json();
@@ -93,8 +97,14 @@ export default function AdminPanel({ navigation }) {
   // Agregar nueva pista
   const agregarPista = async () => {
     setErrorNombreRepetido('');
-    if (!nuevoNombre.trim() || !nuevoTipo) {
-      Alert.alert('Error', 'Nombre y tipo son obligatorios');
+    if (!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio) {
+      Alert.alert('Error', 'Nombre, tipo y precio son obligatorios');
+      return;
+    }
+
+    const precioNumerico = parseFloat(nuevoPrecio);
+    if (isNaN(precioNumerico)) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
       return;
     }
 
@@ -107,6 +117,7 @@ export default function AdminPanel({ navigation }) {
         body: JSON.stringify({
           nombre: nuevoNombre.trim(),
           tipo: nuevoTipo,
+          precio: precioNumerico,
         }),
       });
 
@@ -124,6 +135,7 @@ export default function AdminPanel({ navigation }) {
       setPistas((prevPistas) => [...prevPistas, responseData]);
       setNuevoNombre('');
       setNuevoTipo(null);
+      setNuevoPrecio('');
       setOpen(false);
       Alert.alert('Éxito', 'Pista agregada correctamente');
     } catch (error) {
@@ -236,10 +248,58 @@ export default function AdminPanel({ navigation }) {
     }
   };
 
+  // Abrir modal para editar precio
+  const abrirModalEditar = (pista) => {
+    setPistaEditando(pista);
+    setPrecioEditando(pista.precio.toString());
+    setModalVisible(true);
+  };
+
+  // Guardar cambios de precio
+  const guardarPrecio = async () => {
+    if (!pistaEditando || !precioEditando) {
+      Alert.alert('Error', 'El precio no puede estar vacío');
+      return;
+    }
+
+    const precioNumerico = parseFloat(precioEditando);
+    if (isNaN(precioNumerico)) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
+      return;
+    }
+
+    try {
+const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          precio: precioNumerico,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el precio');
+      }
+
+      const pistaActualizada = await response.json();
+      setPistas(pistas.map(p => p.id === pistaEditando.id ? pistaActualizada : p));
+      setModalVisible(false);
+      Alert.alert('Éxito', 'Precio actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar precio:', error);
+      Alert.alert('Error', 'No se pudo actualizar el precio');
+    }
+  };
+
   const renderPistaItem = ({ item }) => (
     <View style={[styles.pistaCard, isLargeScreen && styles.pistaCardLarge]}>
       <View style={styles.pistaHeader}>
-        <Text style={[styles.pistaNombre, isLargeScreen && styles.pistaNombreLarge]}>{item.nombre}</Text>
+        <View>
+          <Text style={[styles.pistaNombre, isLargeScreen && styles.pistaNombreLarge]}>{item.nombre}</Text>
+          <Text style={styles.pistaPrecio}>{item.precio} €/hora</Text>
+        </View>
         <View style={styles.estadoContainer}>
           <View style={[
             styles.estadoIndicator,
@@ -267,14 +327,20 @@ export default function AdminPanel({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.botonAccion, isLargeScreen && styles.botonAccionLarge]}
+          onPress={() => abrirModalEditar(item)}
+        >
+          <Ionicons name="pencil-outline" size={isLargeScreen ? 24 : 20} color="#3498DB" />
+          <Text style={[styles.textoAccion, isLargeScreen && styles.textoAccionLarge]}>
+            Editar Precio
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.botonAccion, styles.botonEliminar, isLargeScreen && styles.botonAccionLarge]}
           onPress={() => eliminarPista(item.id)}
         >
-          <Ionicons 
-            name="trash-outline" 
-            size={isLargeScreen ? 24 : 20} 
-            color="#F44336" 
-          />
+          <Ionicons name="trash-outline" size={isLargeScreen ? 24 : 20} color="#F44336" />
           <Text style={[styles.textoAccion, styles.textoEliminar, isLargeScreen && styles.textoAccionLarge]}>
             Eliminar
           </Text>
@@ -303,6 +369,9 @@ export default function AdminPanel({ navigation }) {
         </Text>
         <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
           Hora: {item.horaInicio} - {item.horaFin}
+        </Text>
+        <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
+          Precio: {item.precioTotal || '--'} €
         </Text>
       </View>
       
@@ -340,6 +409,49 @@ export default function AdminPanel({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Modal para editar precio */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, isLargeScreen && styles.modalContentLarge]}>
+            <Text style={[styles.modalTitle, isLargeScreen && styles.modalTitleLarge]}>
+              Editar Precio
+            </Text>
+            <Text style={styles.modalPistaNombre}>
+              {pistaEditando?.nombre}
+            </Text>
+            
+            <TextInput
+              style={[styles.modalInput, isLargeScreen && styles.modalInputLarge]}
+              placeholder="Nuevo precio"
+              value={precioEditando}
+              onChangeText={setPrecioEditando}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={guardarPrecio}
+              >
+                <Text style={styles.modalButtonText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={[styles.header, isLargeScreen && styles.headerLarge]}>
         <Text style={[styles.titulo, isLargeScreen && styles.tituloLarge]}>
           Panel de Administración
@@ -432,23 +544,28 @@ export default function AdminPanel({ navigation }) {
               textStyle={isLargeScreen ? styles.dropdownTextLarge : null}
             />
 
+            <TextInput
+              style={[styles.input, isLargeScreen && styles.inputLarge]}
+              placeholder="Precio por hora (€)"
+              value={nuevoPrecio}
+              onChangeText={setNuevoPrecio}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+
             <TouchableOpacity
               style={[
                 styles.botonAgregar,
-                (!nuevoNombre.trim() || !nuevoTipo) && styles.botonDisabled,
+                (!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio) && styles.botonDisabled,
                 isLargeScreen && styles.botonAgregarLarge
               ]}
               onPress={agregarPista}
-              disabled={!nuevoNombre.trim() || !nuevoTipo}
+              disabled={!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio}
             >
               <Text style={[styles.botonAgregarTexto, isLargeScreen && styles.botonAgregarTextoLarge]}>
                 Agregar Pista
               </Text>
-              <Ionicons 
-                name="add-circle-outline" 
-                size={isLargeScreen ? 24 : 20} 
-                color="white" 
-              />
+              <Ionicons name="add-circle-outline" size={isLargeScreen ? 24 : 20} color="white" />
             </TouchableOpacity>
           </View>
 
@@ -751,6 +868,12 @@ const styles = StyleSheet.create({
   pistaNombreLarge: {
     fontSize: 20,
   },
+  pistaPrecio: {
+    fontSize: 16,
+    color: '#2E7D32',
+    fontWeight: '600',
+    marginTop: 4,
+  },
   estadoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -866,5 +989,71 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '80%',
     maxWidth: 800,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalContentLarge: {
+    padding: 30,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#2C3E50',
+    textAlign: 'center',
+  },
+  modalTitleLarge: {
+    fontSize: 24,
+  },
+  modalPistaNombre: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#34495E',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#BDC3C7',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalInputLarge: {
+    padding: 16,
+    fontSize: 18,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#E0E0E0',
+  },
+  modalButtonSave: {
+    backgroundColor: '#3498DB',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

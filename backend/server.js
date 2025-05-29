@@ -35,11 +35,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const loginRuta = require('./rutas/login');
 const registroRuta = require('./rutas/registro');
 const pistasRuta = require('./rutas/pistas');
+const reservasRuta = require('./rutas/reservas');
 
 
 app.use('/login', loginRuta);
 app.use('/registro', registroRuta);
 app.use('/pistas', pistasRuta);
+app.use('/reservas', reservasRuta);
 
 
 // Ruta de prueba

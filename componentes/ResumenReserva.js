@@ -15,9 +15,7 @@ export default function ResumenReserva({ pista, precio, duracion, total }) {
       <Text style={styles.linea}>
         Pista seleccionada: <Text style={styles.valor}>{pista}</Text>
       </Text>
-      <Text style={styles.linea}>
-        Precio por hora: <Text style={styles.valor}>{precioSeguro.toFixed(2)} €</Text>
-      </Text>
+      
       <Text style={styles.linea}>
         Duración: <Text style={styles.valor}>{duracionSeguro} hora(s)</Text>
       </Text>

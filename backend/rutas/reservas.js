@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
+// Crear una reserva
 router.post('/', (req, res) => {
   const db = req.app.get('conexion');
 
   const {
     dni_usuario,
     nombre_usuario,
-    pista,      // Aquí esperamos que sea el id numérico de la pista
+    pista,      // id numérico de la pista
     fecha,
     hora_inicio,
     hora_fin,
@@ -47,7 +48,7 @@ router.post('/', (req, res) => {
         return res.status(409).json({ message: 'La pista no está disponible en el horario seleccionado' });
       }
 
-      // Obtener precio de la pista por id
+      // Obtener precio de la pista
       const precioSQL = `SELECT precio FROM pistas WHERE id = ? LIMIT 1`;
 
       db.query(precioSQL, [pistaId], (err, rows) => {
@@ -57,7 +58,6 @@ router.post('/', (req, res) => {
         }
 
         if (rows.length === 0) {
-          console.error('No se encontró precio para pista con id:', pistaId);
           return res.status(404).json({ message: 'Precio no encontrado para la pista' });
         }
 
@@ -89,15 +89,23 @@ router.post('/', (req, res) => {
               return res.status(500).json({ message: 'Error al insertar reserva' });
             }
 
-            // Devolver reserva creada
-            const selectSQL = `SELECT * FROM reservas WHERE id = ?`;
+            // Devolver reserva creada con datos de pista
+            const selectSQL = `
+              SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
+              FROM reservas r
+              LEFT JOIN pistas p ON r.pista = p.id
+              WHERE r.id = ?
+            `;
 
             db.query(selectSQL, [result.insertId], (err, rows) => {
               if (err) {
                 console.error('Error al obtener reserva creada:', err);
                 return res.status(500).json({ message: 'Error al obtener reserva creada' });
               }
-
+              if (rows.length === 0) {
+                return res.status(404).json({ message: 'Reserva no encontrada después de crearla' });
+              }
+              console.log('Reserva creada:', rows[0]);
               res.status(201).json(rows[0]);
             });
           }
@@ -105,6 +113,45 @@ router.post('/', (req, res) => {
       });
     }
   );
+});
+
+// Listar todas las reservas
+router.get('/', (req, res) => {
+  const db = req.app.get('conexion');
+
+  const sql = `
+    SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
+    FROM reservas r
+    LEFT JOIN pistas p ON r.pista = p.id
+    ORDER BY r.fecha_creacion DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error al obtener reservas:', err);
+      return res.status(500).json({ message: 'Error al obtener reservas' });
+    }
+    res.json(results);
+  });
+});
+
+// Eliminar una reserva por id
+router.delete('/:id', (req, res) => {
+  const db = req.app.get('conexion');
+  const { id } = req.params;
+
+  const deleteSQL = `DELETE FROM reservas WHERE id = ?`;
+
+  db.query(deleteSQL, [id], (err, result) => {
+    if (err) {
+      console.error('Error al eliminar reserva:', err);
+      return res.status(500).json({ message: 'Error al eliminar reserva' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Reserva no encontrada' });
+    }
+    res.json({ message: 'Reserva eliminada correctamente' });
+  });
 });
 
 module.exports = router;

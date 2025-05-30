@@ -186,39 +186,47 @@ export default function AdminPanel({ navigation }) {
     }
   };
 
-  // Cancelar reserva
-  const cancelarReserva = (id) => {
+// Confirmar y eliminar reserva
+const cancelarReserva = (id) => {
+  if (Platform.OS === 'web') {
+    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar esta reserva?');
+    if (confirmar) {
+      handleCancelarReserva(id);
+    }
+  } else {
     Alert.alert(
-      'Confirmar cancelación',
-      '¿Estás seguro de que deseas cancelar esta reserva?',
+      'Confirmar eliminación',
+      '¿Estás seguro de que deseas eliminar esta reserva?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Confirmar',
+          text: 'Eliminar',
           style: 'destructive',
           onPress: () => handleCancelarReserva(id),
         },
       ]
     );
-  };
+  }
+};
 
-  const handleCancelarReserva = async (id) => {
-    try {
-      const response = await fetch(`${RESERVAS_URL}/${id}`, {
-        method: 'DELETE',
-      });
+// Petición para cancelar reserva
+const handleCancelarReserva = async (id) => {
+  try {
+    const response = await fetch(`${RESERVAS_URL}/${id}`, {
+      method: 'DELETE',
+    });
 
-      if (!response.ok) {
-        throw new Error('Error al cancelar la reserva');
-      }
-
-      setReservas((prevReservas) => prevReservas.filter((reserva) => reserva.id !== id));
-      Alert.alert('Éxito', 'Reserva cancelada correctamente');
-    } catch (error) {
-      console.error('Error al cancelar reserva:', error);
-      Alert.alert('Error', 'No se pudo cancelar la reserva');
+    if (!response.ok) {
+      throw new Error('Error al cancelar la reserva');
     }
-  };
+
+    setReservas((prevReservas) => prevReservas.filter((reserva) => reserva.id !== id));
+    Alert.alert('Éxito', 'Reserva cancelada correctamente');
+  } catch (error) {
+    console.error('Error al cancelar reserva:', error);
+    Alert.alert('Error', 'No se pudo cancelar la reserva');
+  }
+};
 
   // Cambiar estado de mantenimiento
   const toggleMantenimiento = async (id) => {

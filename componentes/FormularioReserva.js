@@ -93,12 +93,27 @@ export default function FormularioReserva({ navigation }) {
           hora_fin: form.horaFin,
           ludoteca: form.ludoteca,
           estado: 'pendiente',
+           precio: precioTotal,
         }),
       });
       if (!res.ok) throw new Error('Error al crear la reserva');
 
       Alert.alert('Éxito', 'Reserva creada correctamente');
-      navigation.goBack();
+navigation.navigate('ResumenReserva', {
+  reserva: {
+    dni_usuario: dni,
+    nombre_usuario: nombre,
+    pista: pistaSeleccionada?.nombre || '',
+    fecha: form.fecha,
+    hora_inicio: form.horaInicio,
+    hora_fin: form.horaFin,
+    ludoteca: form.ludoteca,
+    estado: 'pendiente',
+     precio: precioTotal,
+
+  }
+});
+
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -155,6 +170,7 @@ export default function FormularioReserva({ navigation }) {
               value={form.fecha ? new Date(form.fecha) : new Date()}
               mode="date"
               display="default"
+              locale='es'
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
                 if (selectedDate) {
@@ -230,10 +246,6 @@ export default function FormularioReserva({ navigation }) {
     </View>
   );
 }
-
-
-
-
 const styles = StyleSheet.create({
   container: {
     padding: 24,

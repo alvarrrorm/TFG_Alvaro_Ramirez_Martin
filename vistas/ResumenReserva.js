@@ -1,136 +1,139 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 
 export default function ResumenReserva({ route, navigation }) {
-  const {
-    dni,
-    nombre,
-    pistaId,
-    pistaNombre,
-    fecha,
-    horaInicio,
-    horaFin,
-    ludoteca,
-    duracion,
-    precioHora,
-    total,
-  } = route.params;
+  const reserva = route?.params?.reserva;
 
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    console.log('Datos recibidos en ResumenReserva:', reserva);
+  }, [reserva]);
 
-  const handleConfirmar = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:3001/reservas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dni,
-          nombre,
-          pistaId,
-          fecha,
-          horaInicio,
-          horaFin,
-          ludoteca,
-          precioTotal: total,
-        }),
-      });
-      if (!response.ok) throw new Error('Error al guardar reserva');
+  if (!reserva) {
+    return (
+      <View style={styles.centrado}>
+        <Text style={styles.errorTexto}>
+          No se han recibido datos de la reserva.
+        </Text>
+      </View>
+    );
+  }
 
-      Alert.alert('Reserva confirmada', 'Tu reserva ha sido guardada correctamente');
-      navigation.navigate('inicio');
-    } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo guardar la reserva');
-    } finally {
-      setLoading(false);
-    }
+  const manejarPago = () => {
+    Alert.alert('Pago', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
   };
 
+  const manejarVolver = () => {
+    navigation.goBack();
+  };
+
+  // Lista de datos a mostrar ordenados
+  const datosMostrar = [
+    { label: 'Usuario', valor: reserva.nombre_usuario || 'Desconocido' },
+    { label: 'Pista', valor: reserva.pista || 'No especificado' },
+    { label: 'Fecha', valor: reserva.fecha || 'No especificado' },
+    { label: 'Hora Inicio', valor: reserva.hora_inicio || 'No especificado' },
+    { label: 'Hora Fin', valor: reserva.hora_fin || 'No especificado' },
+    { label: 'Ludoteca', valor: reserva.ludoteca ? 'Sí' : 'No' },
+    { label: 'Estado', valor: reserva.estado || 'Pendiente' },
+    { label: 'Precio total', valor: reserva.precio !== undefined && reserva.precio !== null ? `${reserva.precio} €` : 'No especificado' },
+  ];
+
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Resumen de la Reserva</Text>
 
-      <Text style={styles.label}>Nombre: <Text style={styles.valor}>{nombre}</Text></Text>
-      <Text style={styles.label}>DNI: <Text style={styles.valor}>{dni}</Text></Text>
-      <Text style={styles.label}>Pista: <Text style={styles.valor}>{pistaNombre}</Text></Text>
-      <Text style={styles.label}>Fecha: <Text style={styles.valor}>{fecha}</Text></Text>
-      <Text style={styles.label}>Hora Inicio: <Text style={styles.valor}>{horaInicio}</Text></Text>
-      <Text style={styles.label}>Hora Fin: <Text style={styles.valor}>{horaFin}</Text></Text>
-      <Text style={styles.label}>Duración: <Text style={styles.valor}>{duracion} horas</Text></Text>
-      <Text style={styles.label}>Ludoteca: <Text style={styles.valor}>{ludoteca ? 'Sí' : 'No'}</Text></Text>
-      <Text style={styles.precio}>Precio total: {total.toFixed(2)} €</Text>
+      {datosMostrar.map(({ label, valor }) => (
+        <View key={label} style={styles.item}>
+          <Text style={styles.label}>{label}:</Text>
+          <Text style={styles.valor}>{valor}</Text>
+        </View>
+      ))}
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#1976D2" />
-      ) : (
-        <TouchableOpacity style={styles.boton} onPress={handleConfirmar}>
-          <Text style={styles.botonTexto}>Confirmar Reserva</Text>
-        </TouchableOpacity>
-      )}
-
-      <TouchableOpacity
-        style={[styles.boton, { backgroundColor: '#aaa', marginTop: 12 }]}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.botonTexto}>Volver</Text>
+      <TouchableOpacity style={styles.botonVolver} onPress={manejarVolver}>
+        <Text style={styles.textoBotonVolver}>← Volver</Text>
       </TouchableOpacity>
-    </View>
+
+      <TouchableOpacity style={styles.botonPago} onPress={manejarPago}>
+        <Text style={styles.textoBoton}>Pagar Ahora</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 24,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    margin: 24,
-    maxWidth: 600,
-    marginHorizontal: 'auto',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: '#f5f8fa',
+    flexGrow: 1,
   },
   titulo: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 24,
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#1976D2',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  item: {
+    marginBottom: 18,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   label: {
+    fontWeight: '700',
     fontSize: 16,
-    marginBottom: 8,
-    fontWeight: '600',
+    color: '#555',
   },
   valor: {
-    fontWeight: '400',
-    color: '#444',
-  },
-  precio: {
-    marginTop: 20,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0B610B',
+    color: '#222',
+    marginTop: 6,
   },
-  boton: {
-    backgroundColor: '#1976D2',
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+  centrado: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    padding: 24,
   },
-  botonTexto: {
+  errorTexto: {
+    fontSize: 18,
+    color: 'red',
+    textAlign: 'center',
+  },
+  botonVolver: {
+    marginTop: 30,
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  textoBotonVolver: {
+    color: '#555',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  botonPago: {
+    marginTop: 16,
+    backgroundColor: '#1976D2',
+    paddingVertical: 14,
+    borderRadius: 8,
+    shadowColor: '#1976D2',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
+    alignItems: 'center',
+  },
+  textoBoton: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

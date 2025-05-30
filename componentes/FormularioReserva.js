@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,53 +9,79 @@ import {
   Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import DateTimePickerNative from '@react-native-community/datetimepicker';
-import { Checkbox } from 'react-native-paper'; // Añadimos el Checkbox
-
-import PistaSelector from './PistaSelector';
-import CalendarioWeb from './CalendarioWeb'; 
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Checkbox } from 'react-native-paper';
 import { UserContext } from '../contexto/UserContex';
+import CalendarioWeb from './CalendarioWeb';
+import PrecioEstimado from './PrecioEstimado';
+import ResumenReserva from './ResumenReserva';
 
 export default function FormularioReserva({ navigation }) {
   const { usuario, dni } = useContext(UserContext);
   const nombre = usuario || '';
 
+  const [pistas, setPistas] = useState([]);
   const [form, setForm] = useState({
     pista: '',
     fecha: '',
     horaInicio: '08:00',
     horaFin: '09:00',
-    ludoteca: false, // Nuevo campo para la ludoteca
+    ludoteca: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const horasDisponibles = Array.from({ length: 15 }, (_, i) => {
-    const hora = 8 + i;
-    return `${hora.toString().padStart(2, '0')}:00`;
+    const h = 8 + i;
+    return `${h.toString().padStart(2, '0')}:00`;
   });
 
-  const formatoFechaLegible = (fechaISO) => {
-    if (!fechaISO) return '';
+  useEffect(() => {
+    fetch('http://localhost:3001/pistas')
+      .then(res => res.json())
+      .then(data => setPistas(data))
+      .catch(() => Alert.alert('Error', 'No se pudieron cargar las pistas'));
+  }, []);
+
+  const formatoFechaLegible = fechaISO => {
+    if (!fechaISO) return 'Selecciona una fecha';
     const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
   };
+
+  // Calcular precio total
+  const calcularPrecio = () => {
+    if (!form.pista || !form.horaInicio || !form.horaFin) return 0;
+    const pista = pistas.find(p => p.id.toString() === form.pista);
+    if (!pista) return 0;
+
+    const hi = parseInt(form.horaInicio.split(':')[0], 10);
+    const hf = parseInt(form.horaFin.split(':')[0], 10);
+    const duracion = hf - hi;
+    if (duracion <= 0) return 0;
+
+    return pista.precio * duracion;
+  };
+
+  const precioTotal = calcularPrecio();
+  const pistaSeleccionada = pistas.find(p => p.id.toString() === form.pista);
+  const duracion = form.horaInicio && form.horaFin
+    ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
+    : 0;
 
   const handleSubmit = async () => {
     if (!form.pista || !form.fecha) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
-
     if (form.horaFin <= form.horaInicio) {
       Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const response = await fetch('http://localhost:3001/reservas', {
+      const res = await fetch('http://localhost:3001/reservas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,17 +91,16 @@ export default function FormularioReserva({ navigation }) {
           fecha: form.fecha,
           hora_inicio: form.horaInicio,
           hora_fin: form.horaFin,
-          ludoteca: form.ludoteca, // Incluimos el campo ludoteca
+          ludoteca: form.ludoteca,
           estado: 'pendiente',
         }),
       });
-
-      if (!response.ok) throw new Error('Error al crear la reserva');
+      if (!res.ok) throw new Error('Error al crear la reserva');
 
       Alert.alert('Éxito', 'Reserva creada correctamente');
       navigation.goBack();
-    } catch (err) {
-      Alert.alert('Error', err.message);
+    } catch (error) {
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -89,18 +114,30 @@ export default function FormularioReserva({ navigation }) {
       </View>
 
       <Text style={styles.label}>Selecciona la pista</Text>
-      <PistaSelector
-        value={form.pista}
-        onChange={(value) => setForm({ ...form, pista: value })}
-      />
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={form.pista}
+          onValueChange={value => setForm({ ...form, pista: value })}
+          style={styles.picker}
+          dropdownIconColor="#1976D2"
+        >
+          <Picker.Item label="Selecciona una pista" value="" />
+          {pistas.map(pista => (
+            <Picker.Item
+              key={pista.id}
+              label={`${pista.nombre} - ${pista.precio} €/h`}
+              value={pista.id.toString()}
+            />
+          ))}
+        </Picker>
+      </View>
 
       <Text style={styles.label}>Fecha de la reserva</Text>
-
       {Platform.OS === 'web' ? (
         <View style={{ marginBottom: 20, position: 'relative', zIndex: 10 }}>
           <CalendarioWeb
             selectedDate={form.fecha}
-            onChangeDate={(fechaISO) => setForm({ ...form, fecha: fechaISO })}
+            onChangeDate={fechaISO => setForm({ ...form, fecha: fechaISO })}
           />
         </View>
       ) : (
@@ -108,22 +145,20 @@ export default function FormularioReserva({ navigation }) {
           <TouchableOpacity
             style={styles.datePickerButton}
             onPress={() => setShowDatePicker(true)}
-            activeOpacity={0.7}
           >
             <Text style={[styles.datePickerText, !form.fecha && { color: '#888' }]}>
               {form.fecha ? formatoFechaLegible(form.fecha) : 'Selecciona una fecha'}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
-            <DateTimePickerNative
+            <DateTimePicker
               value={form.fecha ? new Date(form.fecha) : new Date()}
               mode="date"
               display="default"
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
                 if (selectedDate) {
-                  const fechaFormateada = selectedDate.toISOString().split('T')[0];
-                  setForm({ ...form, fecha: fechaFormateada });
+                  setForm({ ...form, fecha: selectedDate.toISOString().split('T')[0] });
                 }
               }}
             />
@@ -136,11 +171,11 @@ export default function FormularioReserva({ navigation }) {
           <Text style={styles.pickerLabel}>Desde</Text>
           <Picker
             selectedValue={form.horaInicio}
-            onValueChange={(value) => setForm({ ...form, horaInicio: value })}
+            onValueChange={value => setForm({ ...form, horaInicio: value })}
             style={styles.picker}
             dropdownIconColor="#1976D2"
           >
-            {horasDisponibles.map((hora) => (
+            {horasDisponibles.map(hora => (
               <Picker.Item key={hora} label={hora} value={hora} />
             ))}
           </Picker>
@@ -149,18 +184,17 @@ export default function FormularioReserva({ navigation }) {
           <Text style={styles.pickerLabel}>Hasta</Text>
           <Picker
             selectedValue={form.horaFin}
-            onValueChange={(value) => setForm({ ...form, horaFin: value })}
+            onValueChange={value => setForm({ ...form, horaFin: value })}
             style={styles.picker}
             dropdownIconColor="#1976D2"
           >
-            {horasDisponibles.filter((h) => h > form.horaInicio).map((hora) => (
+            {horasDisponibles.filter(h => h > form.horaInicio).map(hora => (
               <Picker.Item key={hora} label={hora} value={hora} />
             ))}
           </Picker>
         </View>
       </View>
 
-      {/* Checkbox para la ludoteca */}
       <View style={styles.checkboxContainer}>
         <Checkbox
           status={form.ludoteca ? 'checked' : 'unchecked'}
@@ -170,21 +204,35 @@ export default function FormularioReserva({ navigation }) {
         <Text style={styles.checkboxLabel}>Incluir servicio de ludoteca</Text>
       </View>
 
+      {precioTotal > 0 && (
+        <>
+          <PrecioEstimado
+            precio={precioTotal}
+            duracion={duracion}
+            precioHora={pistaSeleccionada?.precio || 0}
+          />
+          <ResumenReserva
+            pista={pistaSeleccionada?.nombre || ''}
+            precioHora={pistaSeleccionada?.precio || 0}
+            duracion={duracion}
+            total={precioTotal}
+          />
+        </>
+      )}
+
       <TouchableOpacity
         style={[styles.boton, loading && styles.botonDisabled]}
         onPress={handleSubmit}
         disabled={loading}
-        activeOpacity={0.8}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.botonTexto}>Reservar</Text>
-        )}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.botonTexto}>Reservar</Text>}
       </TouchableOpacity>
     </View>
   );
 }
+
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -222,76 +270,76 @@ const styles = StyleSheet.create({
   datePickerButton: {
     height: 50,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
+    borderColor: '#1976D2',
     borderWidth: 1,
-    borderColor: '#ddd',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     marginBottom: 20,
-    shadowColor: '#00000022',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
   datePickerText: {
     fontSize: 16,
+    color: '#1976D2',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#1976D2',
+    borderRadius: 10,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
   },
   pickerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  pickerWrapper: {
-    flex: 1,
-    marginHorizontal: 5,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    overflow: 'hidden',
-    shadowColor: '#00000022',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
   pickerLabel: {
-    fontSize: 14,
     fontWeight: '600',
+    marginBottom: 4,
     color: '#1976D2',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  picker: {
-    height: 44,
-    color: '#333',
+    marginLeft: 10,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   checkboxLabel: {
-    marginLeft: 8,
     fontSize: 16,
-    color: '#444',
+    color: '#1976D2',
+  },
+  resumenContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 30,
+  },
+  resumenTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#0d47a1',
+  },
+  resumenText: {
+    fontSize: 16,
+    marginBottom: 6,
+    color: '#0d47a1',
   },
   boton: {
     backgroundColor: '#1976D2',
-    borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#1976D2cc',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-  },
-  botonDisabled: {
-    backgroundColor: '#7ea6d6',
   },
   botonTexto: {
-    color: '#fff',
-    fontSize: 18,
+    color: 'white',
     fontWeight: '700',
+    fontSize: 18,
+  },
+  botonDisabled: {
+    backgroundColor: '#90caf9',
   },
 });

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../conexion'); // Asegúrate de tener tu conexión a la base de datos configurada
 
-// Crear una nueva reserva
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
+  const db = req.app.get('conexion');
+
   const {
     dni_usuario,
     nombre_usuario,
@@ -15,92 +15,82 @@ router.post('/', async (req, res) => {
     estado = 'pendiente'
   } = req.body;
 
-  // Validaciones básicas
   if (!dni_usuario || !nombre_usuario || !pista || !fecha || !hora_inicio || !hora_fin) {
     return res.status(400).json({ message: 'Faltan campos obligatorios' });
   }
 
-  try {
-    // Verificar disponibilidad de la pista
-    const disponibilidad = await db.query(
-      `SELECT * FROM reservas 
-       WHERE pista = ? AND fecha = ? AND (
-         (hora_inicio < ? AND hora_fin > ?) OR
-         (hora_inicio >= ? AND hora_inicio < ?) OR
-         (hora_fin > ? AND hora_fin <= ?)
-       )`,
-      [pista, fecha, hora_fin, hora_inicio, hora_inicio, hora_fin, hora_inicio, hora_fin]
-    );
+  // Comprobar disponibilidad
+  const comprobarDisponibilidadSQL = `
+    SELECT * FROM reservas 
+    WHERE pista = ? AND fecha = ? AND (
+      (hora_inicio < ? AND hora_fin > ?) OR
+      (hora_inicio >= ? AND hora_inicio < ?) OR
+      (hora_fin > ? AND hora_fin <= ?)
+    )
+  `;
 
-    if (disponibilidad.length > 0) {
-      return res.status(409).json({ 
-        message: 'La pista no está disponible en el horario seleccionado' 
+  db.query(
+    comprobarDisponibilidadSQL,
+    [pista, fecha, hora_fin, hora_inicio, hora_inicio, hora_fin, hora_inicio, hora_fin],
+    (err, results) => {
+      if (err) {
+        console.error('Error al comprobar disponibilidad:', err);
+        return res.status(500).json({ message: 'Error al comprobar disponibilidad' });
+      }
+
+      if (results.length > 0) {
+        return res.status(409).json({ message: 'La pista no está disponible en el horario seleccionado' });
+      }
+
+      // Obtener precio de la pista
+      const precioSQL = `SELECT precio FROM pistas WHERE nombre = ? LIMIT 1`;
+
+      db.query(precioSQL, [pista], (err, rows) => {
+        if (err || rows.length === 0) {
+          console.error('Error al obtener precio:', err);
+          return res.status(500).json({ message: 'Error al obtener precio de la pista' });
+        }
+
+        const precioHora = rows[0].precio;
+
+        // Calcular duración en horas
+        const [hInicio, mInicio] = hora_inicio.split(':').map(Number);
+        const [hFin, mFin] = hora_fin.split(':').map(Number);
+        const duracion = ((hFin * 60 + mFin) - (hInicio * 60 + mInicio)) / 60;
+        const precioTotal = precioHora * duracion;
+
+        // Insertar reserva con precio
+        const insertSQL = `
+          INSERT INTO reservas 
+          (dni_usuario, nombre_usuario, pista, fecha, hora_inicio, hora_fin, ludoteca, estado, precio, fecha_creacion)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `;
+
+        db.query(
+          insertSQL,
+          [dni_usuario, nombre_usuario, pista, fecha, hora_inicio, hora_fin, ludoteca, estado, precioTotal],
+          (err, result) => {
+            if (err) {
+              console.error('Error al insertar reserva:', err);
+              return res.status(500).json({ message: 'Error al insertar reserva' });
+            }
+
+            // Devolver reserva creada
+            const selectSQL = `SELECT * FROM reservas WHERE id = ?`;
+
+            db.query(selectSQL, [result.insertId], (err, rows) => {
+              if (err) {
+                console.error('Error al obtener reserva creada:', err);
+                return res.status(500).json({ message: 'Error al obtener reserva creada' });
+              }
+
+              res.status(201).json(rows[0]);
+            });
+          }
+        );
       });
     }
-
-    // Insertar la reserva
-    const result = await db.query(
-      `INSERT INTO reservas 
-       (dni_usuario, nombre_usuario, pista, fecha, hora_inicio, hora_fin, ludoteca, estado, fecha_creacion)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [dni_usuario, nombre_usuario, pista, fecha, hora_inicio, hora_fin, ludoteca, estado]
-    );
-
-    // Obtener la reserva creada
-    const nuevaReserva = await db.query(
-      'SELECT * FROM reservas WHERE id = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json(nuevaReserva[0]);
-  } catch (error) {
-    console.error('Error al crear reserva:', error);
-    res.status(500).json({ message: 'Error al crear la reserva' });
-  }
-});
-
-// Obtener todas las reservas
-router.get('/', async (req, res) => {
-  try {
-    const reservas = await db.query('SELECT * FROM reservas ORDER BY fecha, hora_inicio');
-    res.json(reservas);
-  } catch (error) {
-    console.error('Error al obtener reservas:', error);
-    res.status(500).json({ message: 'Error al obtener reservas' });
-  }
-});
-
-// Obtener reservas por usuario
-router.get('/usuario/:dni', async (req, res) => {
-  try {
-    const reservas = await db.query(
-      'SELECT * FROM reservas WHERE dni_usuario = ? ORDER BY fecha DESC, hora_inicio DESC',
-      [req.params.dni]
-    );
-    res.json(reservas);
-  } catch (error) {
-    console.error('Error al obtener reservas:', error);
-    res.status(500).json({ message: 'Error al obtener reservas' });
-  }
-});
-
-// Cancelar una reserva
-router.delete('/:id', async (req, res) => {
-  try {
-    const result = await db.query(
-      'DELETE FROM reservas WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Reserva no encontrada' });
-    }
-
-    res.json({ message: 'Reserva cancelada correctamente' });
-  } catch (error) {
-    console.error('Error al cancelar reserva:', error);
-    res.status(500).json({ message: 'Error al cancelar la reserva' });
-  }
+  );
 });
 
 module.exports = router;

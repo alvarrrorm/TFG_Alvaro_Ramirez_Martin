@@ -1,4 +1,3 @@
-// components/PistaSelector.js
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -34,14 +33,21 @@ export default function PistaSelector({ value, onChange }) {
   return (
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={value}
-        onValueChange={onChange}
+        selectedValue={value?.id || ''}
+        onValueChange={(id) => {
+          const pistaSeleccionada = pistas.find(p => p.id === id) || null;
+          onChange(pistaSeleccionada);
+        }}
         dropdownIconColor="#1976D2"
         style={styles.picker}
       >
         <Picker.Item label="Selecciona una pista" value="" />
         {pistas.map((p) => (
-          <Picker.Item key={p.id} label={p.nombre} value={p.nombre} />
+          <Picker.Item
+            key={p.id}
+            label={`${p.tipo} - ${p.nombre} (€${p.precio})`}
+            value={p.id}
+          />
         ))}
       </Picker>
     </View>

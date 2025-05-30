@@ -33,10 +33,9 @@ export default function PistaSelector({ value, onChange }) {
   return (
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={value?.id || ''}
+        selectedValue={value || ''}
         onValueChange={(id) => {
-          const pistaSeleccionada = pistas.find(p => p.id === id) || null;
-          onChange(pistaSeleccionada);
+          onChange(id);
         }}
         dropdownIconColor="#1976D2"
         style={styles.picker}

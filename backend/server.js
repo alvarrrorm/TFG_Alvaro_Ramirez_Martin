@@ -5,9 +5,9 @@ const mysql = require('mysql2');
 
 // Crear conexión MySQL
 const conexion = mysql.createConnection({
-  host: 'localhost',
+  host: 'centerbeam.proxy.rlwy.net',
   user: 'root',
-  password: 'qwerty',
+  password: 'xdLWuguiQjCNZrEQffZEpJbBjSeRwYlr',
   database: 'gestion_polideportivo'
 });
 

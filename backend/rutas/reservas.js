@@ -140,18 +140,53 @@ router.delete('/:id', (req, res) => {
   const db = req.app.get('conexion');
   const { id } = req.params;
 
-  const deleteSQL = `DELETE FROM reservas WHERE id = ?`;
+  // Primero obtener la reserva para devolver info luego
+  const selectSQL = `
+    SELECT r.*, p.nombre AS nombre_pista
+    FROM reservas r
+    LEFT JOIN pistas p ON r.pista = p.id
+    WHERE r.id = ?
+  `;
 
-  db.query(deleteSQL, [id], (err, result) => {
+  db.query(selectSQL, [id], (err, rows) => {
     if (err) {
-      console.error('Error al eliminar reserva:', err);
-      return res.status(500).json({ message: 'Error al eliminar reserva' });
+      console.error('Error al obtener reserva:', err);
+      return res.status(500).json({ error: 'Error interno del servidor' });
     }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Reserva no encontrada' });
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
     }
-    res.json({ message: 'Reserva eliminada correctamente' });
+
+    const reserva = rows[0];
+
+    // Ahora borrar la reserva
+    const deleteSQL = 'DELETE FROM reservas WHERE id = ?';
+
+    db.query(deleteSQL, [id], (err, result) => {
+      if (err) {
+        console.error('Error al eliminar reserva:', err);
+        return res.status(500).json({ error: 'Error interno del servidor' });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Reserva no encontrada' });
+      }
+
+      // Devolver datos de la reserva borrada
+      res.json({
+        message: 'Reserva eliminada correctamente',
+        reserva: {
+          id: reserva.id,
+          nombre_pista: reserva.nombre_pista,
+          fecha: reserva.fecha,
+          precio: reserva.precio,
+          estado: reserva.estado,
+        }
+      });
+    });
   });
 });
+
+
 
 module.exports = router;

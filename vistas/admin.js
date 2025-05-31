@@ -35,7 +35,6 @@ export default function AdminPanel({ navigation }) {
   const [nuevoPrecio, setNuevoPrecio] = useState('');
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
-    
     { label: 'Fútbol', value: 'Fútbol' },
     { label: 'Baloncesto', value: 'Baloncesto' },
     { label: 'Tenis', value: 'Tenis' },
@@ -47,6 +46,7 @@ export default function AdminPanel({ navigation }) {
   const [activeTab, setActiveTab] = useState('pistas');
   const { width, height } = useWindowDimensions();
   const isLargeScreen = width >= 768;
+  const isSmallScreen = width < 400;
   const [modalVisible, setModalVisible] = useState(false);
   const [pistaEditando, setPistaEditando] = useState(null);
   const [precioEditando, setPrecioEditando] = useState('');
@@ -186,47 +186,47 @@ export default function AdminPanel({ navigation }) {
     }
   };
 
-// Confirmar y eliminar reserva
-const cancelarReserva = (id) => {
-  if (Platform.OS === 'web') {
-    const confirmar = window.confirm('¿Estás seguro de que deseas eliminar esta reserva?');
-    if (confirmar) {
-      handleCancelarReserva(id);
+  // Confirmar y eliminar reserva
+  const cancelarReserva = (id) => {
+    if (Platform.OS === 'web') {
+      const confirmar = window.confirm('¿Estás seguro de que deseas eliminar esta reserva?');
+      if (confirmar) {
+        handleCancelarReserva(id);
+      }
+    } else {
+      Alert.alert(
+        'Confirmar eliminación',
+        '¿Estás seguro de que deseas eliminar esta reserva?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => handleCancelarReserva(id),
+          },
+        ]
+      );
     }
-  } else {
-    Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de que deseas eliminar esta reserva?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => handleCancelarReserva(id),
-        },
-      ]
-    );
-  }
-};
+  };
 
-// Petición para cancelar reserva
-const handleCancelarReserva = async (id) => {
-  try {
-    const response = await fetch(`${RESERVAS_URL}/${id}`, {
-      method: 'DELETE',
-    });
+  // Petición para cancelar reserva
+  const handleCancelarReserva = async (id) => {
+    try {
+      const response = await fetch(`${RESERVAS_URL}/${id}`, {
+        method: 'DELETE',
+      });
 
-    if (!response.ok) {
-      throw new Error('Error al cancelar la reserva');
+      if (!response.ok) {
+        throw new Error('Error al cancelar la reserva');
+      }
+
+      setReservas((prevReservas) => prevReservas.filter((reserva) => reserva.id !== id));
+      Alert.alert('Éxito', 'Reserva cancelada correctamente');
+    } catch (error) {
+      console.error('Error al cancelar reserva:', error);
+      Alert.alert('Error', 'No se pudo cancelar la reserva');
     }
-
-    setReservas((prevReservas) => prevReservas.filter((reserva) => reserva.id !== id));
-    Alert.alert('Éxito', 'Reserva cancelada correctamente');
-  } catch (error) {
-    console.error('Error al cancelar reserva:', error);
-    Alert.alert('Error', 'No se pudo cancelar la reserva');
-  }
-};
+  };
 
   // Cambiar estado de mantenimiento
   const toggleMantenimiento = async (id) => {
@@ -234,7 +234,7 @@ const handleCancelarReserva = async (id) => {
       const pista = pistas.find(p => p.id === id);
       if (!pista) return;
 
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${API_URL}/${id}/disponible`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ const handleCancelarReserva = async (id) => {
     }
 
     try {
-const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
+      const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -302,10 +302,20 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
   };
 
   const renderPistaItem = ({ item }) => (
-    <View style={[styles.pistaCard, isLargeScreen && styles.pistaCardLarge]}>
+    <View style={[
+      styles.pistaCard, 
+      isLargeScreen && styles.pistaCardLarge,
+      isSmallScreen && styles.pistaCardSmall
+    ]}>
       <View style={styles.pistaHeader}>
         <View>
-          <Text style={[styles.pistaNombre, isLargeScreen && styles.pistaNombreLarge]}>{item.nombre}</Text>
+          <Text style={[
+            styles.pistaNombre, 
+            isLargeScreen && styles.pistaNombreLarge,
+            isSmallScreen && styles.pistaNombreSmall
+          ]}>
+            {item.nombre}
+          </Text>
           <Text style={styles.pistaPrecio}>{item.precio} €/hora</Text>
         </View>
         <View style={styles.estadoContainer}>
@@ -319,37 +329,75 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
         </View>
       </View>
 
-      <View style={[styles.accionesContainer, isLargeScreen && styles.accionesContainerLarge]}>
+      <View style={[
+        styles.accionesContainer, 
+        isLargeScreen && styles.accionesContainerLarge,
+        isSmallScreen && { flexDirection: 'column', alignItems: 'flex-start' }
+      ]}>
         <TouchableOpacity
-          style={[styles.botonAccion, isLargeScreen && styles.botonAccionLarge]}
+          style={[
+            styles.botonAccion, 
+            isLargeScreen && styles.botonAccionLarge,
+            isSmallScreen && styles.botonAccionSmall
+          ]}
           onPress={() => toggleMantenimiento(item.id)}
         >
           <MaterialIcons
             name={item.enMantenimiento ? 'handyman' : 'construction'}
-            size={isLargeScreen ? 24 : 20}
+            size={isLargeScreen ? 24 : (isSmallScreen ? 16 : 20)}
             color={item.enMantenimiento ? '#FFA500' : '#607D8B'}
           />
-          <Text style={[styles.textoAccion, isLargeScreen && styles.textoAccionLarge]}>
+          <Text style={[
+            styles.textoAccion, 
+            isLargeScreen && styles.textoAccionLarge,
+            isSmallScreen && styles.textoAccionSmall
+          ]}>
             {item.enMantenimiento ? 'Reactivar' : 'Mantenimiento'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.botonAccion, isLargeScreen && styles.botonAccionLarge]}
+          style={[
+            styles.botonAccion, 
+            isLargeScreen && styles.botonAccionLarge,
+            isSmallScreen && styles.botonAccionSmall
+          ]}
           onPress={() => abrirModalEditar(item)}
         >
-          <Ionicons name="pencil-outline" size={isLargeScreen ? 24 : 20} color="#3498DB" />
-          <Text style={[styles.textoAccion, isLargeScreen && styles.textoAccionLarge]}>
+          <Ionicons 
+            name="pencil-outline" 
+            size={isLargeScreen ? 24 : (isSmallScreen ? 16 : 20)} 
+            color="#3498DB" 
+          />
+          <Text style={[
+            styles.textoAccion, 
+            isLargeScreen && styles.textoAccionLarge,
+            isSmallScreen && styles.textoAccionSmall
+          ]}>
             Editar Precio
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.botonAccion, styles.botonEliminar, isLargeScreen && styles.botonAccionLarge]}
+          style={[
+            styles.botonAccion, 
+            styles.botonEliminar, 
+            isLargeScreen && styles.botonAccionLarge,
+            isSmallScreen && styles.botonAccionSmall
+          ]}
           onPress={() => eliminarPista(item.id)}
         >
-          <Ionicons name="trash-outline" size={isLargeScreen ? 24 : 20} color="#F44336" />
-          <Text style={[styles.textoAccion, styles.textoEliminar, isLargeScreen && styles.textoAccionLarge]}>
+          <Ionicons 
+            name="trash-outline" 
+            size={isLargeScreen ? 24 : (isSmallScreen ? 16 : 20)} 
+            color="#F44336" 
+          />
+          <Text style={[
+            styles.textoAccion, 
+            styles.textoEliminar, 
+            isLargeScreen && styles.textoAccionLarge,
+            isSmallScreen && styles.textoAccionSmall
+          ]}>
             Eliminar
           </Text>
         </TouchableOpacity>
@@ -358,41 +406,82 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
   );
 
   const renderReservaItem = ({ item }) => (
-    <View style={[styles.reservaCard, isLargeScreen && styles.reservaCardLarge]}>
+    <View style={[
+      styles.reservaCard, 
+      isLargeScreen && styles.reservaCardLarge,
+      isSmallScreen && styles.reservaCardSmall
+    ]}>
       <View style={styles.reservaHeader}>
-        <Text style={[styles.reservaNombrePista, isLargeScreen && styles.reservaNombrePistaLarge]}>
+        <Text style={[
+          styles.reservaNombrePista, 
+          isLargeScreen && styles.reservaNombrePistaLarge,
+          isSmallScreen && styles.reservaNombrePistaSmall
+        ]}>
           {item.pistaNombre}
         </Text>
-        <Text style={[styles.reservaTipo, isLargeScreen && styles.reservaTipoLarge]}>
+        <Text style={[
+          styles.reservaTipo, 
+          isLargeScreen && styles.reservaTipoLarge,
+          isSmallScreen && styles.reservaTipoSmall
+        ]}>
           {item.pistaTipo}
         </Text>
       </View>
       
       <View style={styles.reservaInfo}>
-        <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
-          Usuario: {item.usuarioNombre}
+        <Text style={[
+          styles.reservaTexto, 
+          isLargeScreen && styles.reservaTextoLarge,
+          isSmallScreen && styles.reservaTextoSmall
+        ]}>
+          Usuario: {item.nombre_usuario || 'Desconocido'}
         </Text>
-        <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
+        <Text style={[
+          styles.reservaTexto, 
+          isLargeScreen && styles.reservaTextoLarge,
+          isSmallScreen && styles.reservaTextoSmall
+        ]}>
           Fecha: {new Date(item.fecha).toLocaleDateString()}
         </Text>
-        <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
-          Hora: {item.horaInicio} - {item.horaFin}
+        <Text style={[
+          styles.reservaTexto, 
+          isLargeScreen && styles.reservaTextoLarge,
+          isSmallScreen && styles.reservaTextoSmall
+        ]}>
+          Hora: {item.hora_inicio} - {item.hora_fin}
         </Text>
-        <Text style={[styles.reservaTexto, isLargeScreen && styles.reservaTextoLarge]}>
-          Precio: {item.precioTotal || '--'} €
+        <Text style={[
+          styles.reservaTexto, 
+          isLargeScreen && styles.reservaTextoLarge,
+          isSmallScreen && styles.reservaTextoSmall
+        ]}>
+          Precio: {(() => {
+            const precioNum = Number(item.precio);
+            return isNaN(precioNum) ? '--' : precioNum.toFixed(2);
+          })()} €
         </Text>
       </View>
       
       <TouchableOpacity
-        style={[styles.botonAccion, styles.botonCancelar, isLargeScreen && styles.botonAccionLarge]}
+        style={[
+          styles.botonAccion, 
+          styles.botonCancelar, 
+          isLargeScreen && styles.botonAccionLarge,
+          isSmallScreen && styles.botonAccionSmall
+        ]}
         onPress={() => cancelarReserva(item.id)}
       >
         <Ionicons 
           name="close-circle-outline" 
-          size={isLargeScreen ? 24 : 20} 
+          size={isLargeScreen ? 24 : (isSmallScreen ? 16 : 20)} 
           color="#F44336" 
         />
-        <Text style={[styles.textoAccion, styles.textoEliminar, isLargeScreen && styles.textoAccionLarge]}>
+        <Text style={[
+          styles.textoAccion, 
+          styles.textoEliminar, 
+          isLargeScreen && styles.textoAccionLarge,
+          isSmallScreen && styles.textoAccionSmall
+        ]}>
           Cancelar
         </Text>
       </TouchableOpacity>
@@ -400,8 +489,16 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
   );
 
   const renderSectionHeader = ({ section: { title } }) => (
-    <View style={[styles.sectionHeader, isLargeScreen && styles.sectionHeaderLarge]}>
-      <Text style={[styles.sectionHeaderText, isLargeScreen && styles.sectionHeaderTextLarge]}>
+    <View style={[
+      styles.sectionHeader, 
+      isLargeScreen && styles.sectionHeaderLarge,
+      isSmallScreen && styles.sectionHeaderSmall
+    ]}>
+      <Text style={[
+        styles.sectionHeaderText, 
+        isLargeScreen && styles.sectionHeaderTextLarge,
+        isSmallScreen && styles.sectionHeaderTextSmall
+      ]}>
         {title}
       </Text>
     </View>
@@ -425,8 +522,16 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, isLargeScreen && styles.modalContentLarge]}>
-            <Text style={[styles.modalTitle, isLargeScreen && styles.modalTitleLarge]}>
+          <View style={[
+            styles.modalContent, 
+            isLargeScreen && styles.modalContentLarge,
+            isSmallScreen && styles.modalContentSmall
+          ]}>
+            <Text style={[
+              styles.modalTitle, 
+              isLargeScreen && styles.modalTitleLarge,
+              isSmallScreen && styles.modalTitleSmall
+            ]}>
               Editar Precio
             </Text>
             <Text style={styles.modalPistaNombre}>
@@ -434,7 +539,11 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
             </Text>
             
             <TextInput
-              style={[styles.modalInput, isLargeScreen && styles.modalInputLarge]}
+              style={[
+                styles.modalInput, 
+                isLargeScreen && styles.modalInputLarge,
+                isSmallScreen && styles.modalInputSmall
+              ]}
               placeholder="Nuevo precio"
               value={precioEditando}
               onChangeText={setPrecioEditando}
@@ -460,27 +569,45 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
         </View>
       </Modal>
 
-      <View style={[styles.header, isLargeScreen && styles.headerLarge]}>
-        <Text style={[styles.titulo, isLargeScreen && styles.tituloLarge]}>
+      <View style={[
+        styles.header, 
+        isLargeScreen && styles.headerLarge,
+        isSmallScreen && styles.headerSmall
+      ]}>
+        <Text style={[
+          styles.titulo, 
+          isLargeScreen && styles.tituloLarge,
+          isSmallScreen && styles.tituloSmall
+        ]}>
           Panel de Administración
         </Text>
-        <Text style={[styles.subtitulo, isLargeScreen && styles.subtituloLarge]}>
+        <Text style={[
+          styles.subtitulo, 
+          isLargeScreen && styles.subtituloLarge,
+          isSmallScreen && styles.subtituloSmall
+        ]}>
           Bienvenido, {usuario?.nombre || 'Administrador'}
         </Text>
         
-        <View style={[styles.tabsContainer, isLargeScreen && styles.tabsContainerLarge]}>
+        <View style={[
+          styles.tabsContainer, 
+          isLargeScreen && styles.tabsContainerLarge,
+          isSmallScreen && styles.tabsContainerSmall
+        ]}>
           <TouchableOpacity
             style={[
               styles.tabButton, 
               activeTab === 'pistas' && styles.activeTab,
-              isLargeScreen && styles.tabButtonLarge
+              isLargeScreen && styles.tabButtonLarge,
+              isSmallScreen && styles.tabButtonSmall
             ]}
             onPress={() => setActiveTab('pistas')}
           >
             <Text style={[
               styles.tabText, 
               activeTab === 'pistas' && styles.activeTabText,
-              isLargeScreen && styles.tabTextLarge
+              isLargeScreen && styles.tabTextLarge,
+              isSmallScreen && styles.tabTextSmall
             ]}>
               Pistas
             </Text>
@@ -490,14 +617,16 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
             style={[
               styles.tabButton, 
               activeTab === 'reservas' && styles.activeTab,
-              isLargeScreen && styles.tabButtonLarge
+              isLargeScreen && styles.tabButtonLarge,
+              isSmallScreen && styles.tabButtonSmall
             ]}
             onPress={() => setActiveTab('reservas')}
           >
             <Text style={[
               styles.tabText, 
               activeTab === 'reservas' && styles.activeTabText,
-              isLargeScreen && styles.tabTextLarge
+              isLargeScreen && styles.tabTextLarge,
+              isSmallScreen && styles.tabTextSmall
             ]}>
               Reservas
             </Text>
@@ -507,7 +636,11 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
 
       {activeTab === 'pistas' ? (
         <ScrollView 
-          style={[styles.scrollContainer, isLargeScreen && styles.scrollContainerLarge]}
+          style={[
+            styles.scrollContainer, 
+            isLargeScreen && styles.scrollContainerLarge,
+            isSmallScreen && styles.scrollContainerSmall
+          ]}
           contentContainerStyle={styles.scrollContentContainer}
           refreshControl={
             <RefreshControl
@@ -516,13 +649,25 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
             />
           }
         >
-          <View style={[styles.formularioContainer, isLargeScreen && styles.formularioContainerLarge]}>
-            <Text style={[styles.seccionTitulo, isLargeScreen && styles.seccionTituloLarge]}>
+          <View style={[
+            styles.formularioContainer, 
+            isLargeScreen && styles.formularioContainerLarge,
+            isSmallScreen && styles.formularioContainerSmall
+          ]}>
+            <Text style={[
+              styles.seccionTitulo, 
+              isLargeScreen && styles.seccionTituloLarge,
+              isSmallScreen && styles.seccionTituloSmall
+            ]}>
               Agregar Nueva Pista
             </Text>
 
             <TextInput
-              style={[styles.input, isLargeScreen && styles.inputLarge]}
+              style={[
+                styles.input, 
+                isLargeScreen && styles.inputLarge,
+                isSmallScreen && styles.inputSmall
+              ]}
               placeholder="Nombre de la pista"
               value={nuevoNombre}
               onChangeText={text => {
@@ -532,7 +677,11 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
               placeholderTextColor="#999"
             />
             {errorNombreRepetido ? (
-              <Text style={[styles.errorTexto, isLargeScreen && styles.errorTextoLarge]}>
+              <Text style={[
+                styles.errorTexto, 
+                isLargeScreen && styles.errorTextoLarge,
+                isSmallScreen && styles.errorTextoSmall
+              ]}>
                 {errorNombreRepetido}
               </Text>
             ) : null}
@@ -545,15 +694,30 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
               setValue={setNuevoTipo}
               setItems={setItems}
               placeholder="Seleccionar tipo"
-              style={[styles.dropdown, isLargeScreen && styles.dropdownLarge]}
-              dropDownContainerStyle={[styles.dropdownContainer, isLargeScreen && styles.dropdownContainerLarge]}
+              style={[
+                styles.dropdown, 
+                isLargeScreen && styles.dropdownLarge,
+                isSmallScreen && styles.dropdownSmall
+              ]}
+              dropDownContainerStyle={[
+                styles.dropdownContainer, 
+                isLargeScreen && styles.dropdownContainerLarge,
+                isSmallScreen && styles.dropdownContainerSmall
+              ]}
               zIndex={3000}
               zIndexInverse={1000}
-              textStyle={isLargeScreen ? styles.dropdownTextLarge : null}
+              textStyle={[
+                isLargeScreen ? styles.dropdownTextLarge : null,
+                isSmallScreen ? styles.dropdownTextSmall : null
+              ]}
             />
 
             <TextInput
-              style={[styles.input, isLargeScreen && styles.inputLarge]}
+              style={[
+                styles.input, 
+                isLargeScreen && styles.inputLarge,
+                isSmallScreen && styles.inputSmall
+              ]}
               placeholder="Precio por hora (€)"
               value={nuevoPrecio}
               onChangeText={setNuevoPrecio}
@@ -565,25 +729,46 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
               style={[
                 styles.botonAgregar,
                 (!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio) && styles.botonDisabled,
-                isLargeScreen && styles.botonAgregarLarge
+                isLargeScreen && styles.botonAgregarLarge,
+                isSmallScreen && styles.botonAgregarSmall
               ]}
               onPress={agregarPista}
               disabled={!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio}
             >
-              <Text style={[styles.botonAgregarTexto, isLargeScreen && styles.botonAgregarTextoLarge]}>
+              <Text style={[
+                styles.botonAgregarTexto, 
+                isLargeScreen && styles.botonAgregarTextoLarge,
+                isSmallScreen && styles.botonAgregarTextoSmall
+              ]}>
                 Agregar Pista
               </Text>
-              <Ionicons name="add-circle-outline" size={isLargeScreen ? 24 : 20} color="white" />
+              <Ionicons 
+                name="add-circle-outline" 
+                size={isLargeScreen ? 24 : (isSmallScreen ? 16 : 20)} 
+                color="white" 
+              />
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.listaContainer, isLargeScreen && styles.listaContainerLarge]}>
-            <Text style={[styles.seccionTitulo, isLargeScreen && styles.seccionTituloLarge]}>
+          <View style={[
+            styles.listaContainer, 
+            isLargeScreen && styles.listaContainerLarge,
+            isSmallScreen && styles.listaContainerSmall
+          ]}>
+            <Text style={[
+              styles.seccionTitulo, 
+              isLargeScreen && styles.seccionTituloLarge,
+              isSmallScreen && styles.seccionTituloSmall
+            ]}>
               Pistas Disponibles ({pistas.length})
             </Text>
 
             {pistas.length === 0 ? (
-              <Text style={[styles.listaVacia, isLargeScreen && styles.listaVaciaLarge]}>
+              <Text style={[
+                styles.listaVacia, 
+                isLargeScreen && styles.listaVaciaLarge,
+                isSmallScreen && styles.listaVaciaSmall
+              ]}>
                 No hay pistas registradas
               </Text>
             ) : (
@@ -605,20 +790,33 @@ const response = await fetch(`${API_URL}/${pistaEditando.id}/precio`, {
           refreshing={refreshing}
           onRefresh={fetchData}
           ListHeaderComponent={
-            <View style={[styles.listaContainer, isLargeScreen && styles.listaContainerLarge]}>
-              <Text style={[styles.seccionTitulo, isLargeScreen && styles.seccionTituloLarge]}>
+            <View style={[
+              styles.listaContainer, 
+              isLargeScreen && styles.listaContainerLarge,
+              isSmallScreen && styles.listaContainerSmall
+            ]}>
+              <Text style={[
+                styles.seccionTitulo, 
+                isLargeScreen && styles.seccionTituloLarge,
+                isSmallScreen && styles.seccionTituloSmall
+              ]}>
                 Reservas Activas ({reservas.length})
               </Text>
             </View>
           }
           ListEmptyComponent={
-            <Text style={[styles.listaVacia, isLargeScreen && styles.listaVaciaLarge]}>
+            <Text style={[
+              styles.listaVacia, 
+              isLargeScreen && styles.listaVaciaLarge,
+              isSmallScreen && styles.listaVaciaSmall
+            ]}>
               No hay reservas activas
             </Text>
           }
           contentContainerStyle={[
             styles.reservasContentContainer,
-            isLargeScreen && styles.reservasContentContainerLarge
+            isLargeScreen && styles.reservasContentContainerLarge,
+            isSmallScreen && styles.reservasContentContainerSmall
           ]}
         />
       )}
@@ -650,6 +848,10 @@ const styles = StyleSheet.create({
   headerLarge: {
     paddingVertical: 30,
   },
+  headerSmall: {
+    padding: 10,
+    marginBottom: 8,
+  },
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -657,6 +859,9 @@ const styles = StyleSheet.create({
   },
   tituloLarge: {
     fontSize: 32,
+  },
+  tituloSmall: {
+    fontSize: 20,
   },
   subtitulo: {
     fontSize: 16,
@@ -666,6 +871,10 @@ const styles = StyleSheet.create({
   subtituloLarge: {
     fontSize: 20,
     marginTop: 8,
+  },
+  subtituloSmall: {
+    fontSize: 14,
+    marginTop: 2,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -678,6 +887,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     borderRadius: 12,
   },
+  tabsContainerSmall: {
+    marginTop: 8,
+    borderRadius: 6,
+  },
   tabButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -686,6 +899,10 @@ const styles = StyleSheet.create({
   },
   tabButtonLarge: {
     paddingVertical: 14,
+  },
+  tabButtonSmall: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   activeTab: {
     backgroundColor: '#3498DB',
@@ -697,6 +914,9 @@ const styles = StyleSheet.create({
   tabTextLarge: {
     fontSize: 18,
   },
+  tabTextSmall: {
+    fontSize: 14,
+  },
   activeTabText: {
     color: 'white',
   },
@@ -705,6 +925,9 @@ const styles = StyleSheet.create({
   },
   scrollContainerLarge: {
     paddingHorizontal: 40,
+  },
+  scrollContainerSmall: {
+    paddingHorizontal: 8,
   },
   scrollContentContainer: {
     paddingBottom: 32,
@@ -725,6 +948,11 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 18,
   },
+  formularioContainerSmall: {
+    margin: 8,
+    padding: 12,
+    borderRadius: 10,
+  },
   seccionTitulo: {
     fontSize: 18,
     fontWeight: '700',
@@ -734,6 +962,10 @@ const styles = StyleSheet.create({
   seccionTituloLarge: {
     fontSize: 24,
     marginBottom: 20,
+  },
+  seccionTituloSmall: {
+    fontSize: 16,
+    marginBottom: 12,
   },
   input: {
     borderWidth: 1,
@@ -749,6 +981,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     borderRadius: 12,
   },
+  inputSmall: {
+    padding: 10,
+    fontSize: 14,
+    borderRadius: 8,
+  },
   errorTexto: {
     color: '#E74C3C',
     fontWeight: '600',
@@ -757,6 +994,9 @@ const styles = StyleSheet.create({
   },
   errorTextoLarge: {
     fontSize: 16,
+  },
+  errorTextoSmall: {
+    fontSize: 12,
   },
   dropdown: {
     borderColor: '#BDC3C7',
@@ -767,6 +1007,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
     borderRadius: 12,
   },
+  dropdownSmall: {
+    minHeight: 40,
+    borderRadius: 8,
+  },
   dropdownContainer: {
     borderColor: '#BDC3C7',
     borderRadius: 10,
@@ -774,8 +1018,14 @@ const styles = StyleSheet.create({
   dropdownContainerLarge: {
     borderRadius: 12,
   },
+  dropdownContainerSmall: {
+    borderRadius: 8,
+  },
   dropdownTextLarge: {
     fontSize: 18,
+  },
+  dropdownTextSmall: {
+    fontSize: 14,
   },
   botonAgregar: {
     flexDirection: 'row',
@@ -789,6 +1039,10 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
   },
+  botonAgregarSmall: {
+    padding: 10,
+    borderRadius: 8,
+  },
   botonDisabled: {
     backgroundColor: '#A9CCE3',
   },
@@ -800,6 +1054,9 @@ const styles = StyleSheet.create({
   },
   botonAgregarTextoLarge: {
     fontSize: 18,
+  },
+  botonAgregarTextoSmall: {
+    fontSize: 14,
   },
   listaContainer: {
     backgroundColor: 'white',
@@ -817,6 +1074,11 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 18,
   },
+  listaContainerSmall: {
+    margin: 8,
+    padding: 12,
+    borderRadius: 10,
+  },
   listaVacia: {
     textAlign: 'center',
     color: '#7F8C8D',
@@ -826,6 +1088,10 @@ const styles = StyleSheet.create({
   listaVaciaLarge: {
     fontSize: 18,
     marginVertical: 30,
+  },
+  listaVaciaSmall: {
+    fontSize: 14,
+    marginVertical: 15,
   },
   sectionHeader: {
     backgroundColor: '#F5F7FA',
@@ -841,6 +1107,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
   },
+  sectionHeaderSmall: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 6,
+    borderRadius: 6,
+  },
   sectionHeaderText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -848,6 +1121,9 @@ const styles = StyleSheet.create({
   },
   sectionHeaderTextLarge: {
     fontSize: 20,
+  },
+  sectionHeaderTextSmall: {
+    fontSize: 14,
   },
   pistaCard: {
     backgroundColor: '#FFFFFF',
@@ -862,6 +1138,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
   },
+  pistaCardSmall: {
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
   pistaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -875,6 +1156,9 @@ const styles = StyleSheet.create({
   },
   pistaNombreLarge: {
     fontSize: 20,
+  },
+  pistaNombreSmall: {
+    fontSize: 14,
   },
   pistaPrecio: {
     fontSize: 16,
@@ -917,6 +1201,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
+  botonAccionSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
   botonEliminar: {
     backgroundColor: '#FDECEA',
   },
@@ -932,6 +1222,10 @@ const styles = StyleSheet.create({
   },
   textoAccionLarge: {
     fontSize: 16,
+  },
+  textoAccionSmall: {
+    fontSize: 12,
+    marginLeft: 4,
   },
   textoEliminar: {
     color: '#E74C3C',
@@ -949,6 +1243,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
   },
+  reservaCardSmall: {
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
   reservaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -962,6 +1261,9 @@ const styles = StyleSheet.create({
   },
   reservaNombrePistaLarge: {
     fontSize: 20,
+  },
+  reservaNombrePistaSmall: {
+    fontSize: 14,
   },
   reservaTipo: {
     fontSize: 12,
@@ -977,6 +1279,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
+  reservaTipoSmall: {
+    fontSize: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
   reservaInfo: {
     marginVertical: 8,
   },
@@ -988,6 +1296,9 @@ const styles = StyleSheet.create({
   reservaTextoLarge: {
     fontSize: 16,
   },
+  reservaTextoSmall: {
+    fontSize: 12,
+  },
   reservasContentContainer: {
     paddingHorizontal: 16,
     paddingBottom: 40,
@@ -997,6 +1308,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '80%',
     maxWidth: 800,
+  },
+  reservasContentContainerSmall: {
+    paddingHorizontal: 8,
+    paddingBottom: 20,
   },
   modalContainer: {
     flex: 1,
@@ -1014,6 +1329,10 @@ const styles = StyleSheet.create({
   modalContentLarge: {
     padding: 30,
   },
+  modalContentSmall: {
+    padding: 15,
+    width: '95%',
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -1023,6 +1342,9 @@ const styles = StyleSheet.create({
   },
   modalTitleLarge: {
     fontSize: 24,
+  },
+  modalTitleSmall: {
+    fontSize: 18,
   },
   modalPistaNombre: {
     fontSize: 18,
@@ -1041,6 +1363,10 @@ const styles = StyleSheet.create({
   modalInputLarge: {
     padding: 16,
     fontSize: 18,
+  },
+  modalInputSmall: {
+    padding: 10,
+    fontSize: 14,
   },
   modalButtons: {
     flexDirection: 'row',

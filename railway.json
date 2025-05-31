@@ -1,9 +1,0 @@
-{
-  "build": {
-    "builder": "node",
-    "root": "backend"
-  },
-  "deploy": {
-    "start": "npm start"
-  }
-}

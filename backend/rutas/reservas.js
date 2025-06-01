@@ -216,10 +216,12 @@ router.put('/:id/estado', (req, res) => {
   });
 });
 
-module.exports = router;
-
-
-
 
 
 module.exports = router;
+
+
+
+
+
+

@@ -19,6 +19,8 @@ export default function Selector({ navigation }) {
   const [isHoveredReserve, setIsHoveredReserve] = useState(false);
   const [isHoveredAdmin, setIsHoveredAdmin] = useState(false);
   const [isHoveredLogout, setIsHoveredLogout] = useState(false);
+  const [isHoveredMisReservas, setIsHoveredMisReservas] = useState(false);
+
 
   // Componente con TODO el contenido que va debajo del header fijo
   const Content = () => (
@@ -64,6 +66,25 @@ export default function Selector({ navigation }) {
             <Text style={styles.buttonSubtext}>Reservar pista ahora</Text>
           </View>
         </TouchableOpacity>
+
+        
+<TouchableOpacity
+  style={[
+    styles.button, 
+    styles.misReservasButton,
+    isHoveredMisReservas && styles.buttonHovered
+  ]}
+  onPress={() => navigation.navigate('MisReservas')}
+  activeOpacity={0.9}
+  onMouseEnter={() => Platform.OS === 'web' && setIsHoveredMisReservas(true)}
+  onMouseLeave={() => Platform.OS === 'web' && setIsHoveredMisReservas(false)}
+>
+  <Ionicons name="list-outline" size={24} color="#fff" style={styles.buttonIcon} />
+  <View>
+    <Text style={styles.buttonText}>Mis Reservas</Text>
+    <Text style={styles.buttonSubtext}>Ver historial y reservas activas</Text>
+  </View>
+</TouchableOpacity>
       </View>
 
       {/* Sección de instrucciones */}
@@ -202,6 +223,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontWeight: '500',
   },
+  misReservasButton: {
+  backgroundColor: '#3B82F6', // azul suave
+},
+
   username: {
     fontSize: 28,
     fontWeight: '700',

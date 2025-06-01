@@ -68,58 +68,62 @@ export default function FormularioReserva({ navigation }) {
   const duracion = form.horaInicio && form.horaFin
     ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
     : 0;
-
-  const handleSubmit = async () => {
-    if (!form.pista || !form.fecha) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
-    if (form.horaFin <= form.horaInicio) {
-      Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:3001/reservas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dni_usuario: dni,
-          nombre_usuario: nombre,
-          pista: form.pista,
-          fecha: form.fecha,
-          hora_inicio: form.horaInicio,
-          hora_fin: form.horaFin,
-          ludoteca: form.ludoteca,
-          estado: 'pendiente',
-           precio: precioTotal,
-        }),
-      });
-      if (!res.ok) throw new Error('Error al crear la reserva');
-
-      Alert.alert('Éxito', 'Reserva creada correctamente');
-navigation.navigate('ResumenReserva', {
-  reserva: {
-    dni_usuario: dni,
-    nombre_usuario: nombre,
-    pista: pistaSeleccionada?.nombre || '',
-    fecha: form.fecha,
-    hora_inicio: form.horaInicio,
-    hora_fin: form.horaFin,
-    ludoteca: form.ludoteca,
-    estado: 'pendiente',
-     precio: precioTotal,
-
+const handleSubmit = async () => {
+  if (!form.pista || !form.fecha) {
+    Alert.alert('Error', 'Por favor completa todos los campos');
+    return;
   }
-});
+  if (form.horaFin <= form.horaInicio) {
+    Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
+    return;
+  }
 
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await fetch('http://localhost:3001/reservas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: form.pista,
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+      }),
+    });
+
+    if (!res.ok) throw new Error('Error al crear la reserva');
+    const data = await res.json(); // Aquí recibimos el id
+
+    Alert.alert('Éxito', 'Reserva creada correctamente');
+
+    navigation.navigate('ResumenReserva', {
+      reserva: {
+        id: data.id,  // <-- Pasamos el id aquí
+        id_pista: pistaSeleccionada?.id || '',
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: pistaSeleccionada?.nombre || '',
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+      }
+    });
+
+  } catch (error) {
+    Alert.alert('Error', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -217,6 +221,7 @@ navigation.navigate('ResumenReserva', {
           onPress={() => setForm({ ...form, ludoteca: !form.ludoteca })}
           color="#1976D2"
         />
+
         <Text style={styles.checkboxLabel}>Incluir servicio de ludoteca</Text>
       </View>
 

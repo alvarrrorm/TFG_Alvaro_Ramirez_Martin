@@ -188,5 +188,38 @@ router.delete('/:id', (req, res) => {
 });
 
 
+router.put('/:id/estado', (req, res) => {
+  const db = req.app.get('conexion');  // obtener conexión a DB desde app
+  const { id } = req.params;
+  const { estado } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ mensaje: 'Id de reserva requerido' });
+  }
+  if (!estado) {
+    return res.status(400).json({ mensaje: 'El estado es requerido' });
+  }
+
+  const sql = 'UPDATE reservas SET estado = ? WHERE id = ?';
+
+  db.query(sql, [estado, id], (err, result) => {
+    if (err) {
+      console.error('Error al actualizar estado:', err);
+      return res.status(500).json({ mensaje: 'Error al actualizar el estado' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ mensaje: 'Reserva no encontrada' });
+    }
+
+    res.json({ mensaje: 'Estado actualizado correctamente' });
+  });
+});
+
+module.exports = router;
+
+
+
+
 
 module.exports = router;

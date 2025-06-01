@@ -1,8 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 
 export default function ResumenReserva({ route, navigation }) {
   const reserva = route?.params?.reserva;
+
+  const [nombreTarjeta, setNombreTarjeta] = useState('');
+  const [numeroTarjeta, setNumeroTarjeta] = useState('');
+  const [fechaExpiracion, setFechaExpiracion] = useState('');
+  const [cvv, setCvv] = useState('');
 
   useEffect(() => {
     console.log('Datos recibidos en ResumenReserva:', reserva);
@@ -11,52 +16,174 @@ export default function ResumenReserva({ route, navigation }) {
   if (!reserva) {
     return (
       <View style={styles.centrado}>
-        <Text style={styles.errorTexto}>
-          No se han recibido datos de la reserva.
-        </Text>
+        <Text style={styles.errorTexto}>No se han recibido datos de la reserva.</Text>
       </View>
     );
   }
 
-  const manejarPago = () => {
-    Alert.alert('Pago', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+  // Validación Luhn para número de tarjeta
+  const validarTarjeta = (numero) => {
+    const limpio = numero.replace(/\D/g, '');
+    let suma = 0;
+    let alternar = false;
+    for (let i = limpio.length - 1; i >= 0; i--) {
+      let n = parseInt(limpio.charAt(i), 10);
+      if (alternar) {
+        n *= 2;
+        if (n > 9) n -= 9;
+      }
+      suma += n;
+      alternar = !alternar;
+    }
+    return suma % 10 === 0;
   };
 
-  const manejarVolver = () => {
-    navigation.goBack();
+  // Validar formato MM/AA y que no sea fecha pasada
+  const validarFecha = (fecha) => {
+    const [mes, anio] = fecha.split('/');
+    if (!mes || !anio || mes.length !== 2 || anio.length !== 2) return false;
+
+    const mesNum = parseInt(mes, 10);
+    const anioNum = parseInt('20' + anio, 10);
+    if (isNaN(mesNum) || isNaN(anioNum)) return false;
+    if (mesNum < 1 || mesNum > 12) return false;
+
+    const ahora = new Date();
+    const fechaExp = new Date(anioNum, mesNum - 1, 1);
+    // Comparar con primer día del mes actual
+    return fechaExp >= new Date(ahora.getFullYear(), ahora.getMonth(), 1);
   };
 
-  // Lista de datos a mostrar ordenados
-  const datosMostrar = [
-    { label: 'Usuario', valor: reserva.nombre_usuario || 'Desconocido' },
-    { label: 'Pista', valor: reserva.pista || 'No especificado' },
-    { label: 'Fecha', valor: reserva.fecha || 'No especificado' },
-    { label: 'Hora Inicio', valor: reserva.hora_inicio || 'No especificado' },
-    { label: 'Hora Fin', valor: reserva.hora_fin || 'No especificado' },
-    { label: 'Ludoteca', valor: reserva.ludoteca ? 'Sí' : 'No' },
-    { label: 'Estado', valor: reserva.estado || 'Pendiente' },
-    { label: 'Precio total', valor: reserva.precio !== undefined && reserva.precio !== null ? `${reserva.precio} €` : 'No especificado' },
-  ];
+  const manejarPago = async () => {
+    if (!nombreTarjeta || !numeroTarjeta || !fechaExpiracion || !cvv) {
+      Alert.alert('Error', 'Por favor, completa todos los campos de pago.');
+      return;
+    }
+
+    const soloNumeros = numeroTarjeta.replace(/\D/g, '');
+    if (!validarTarjeta(soloNumeros)) {
+      Alert.alert('Error', 'Número de tarjeta inválido.');
+      return;
+    }
+
+    if (!validarFecha(fechaExpiracion)) {
+      Alert.alert('Error', 'Fecha de expiración inválida.');
+      return;
+    }
+
+    if (!/^\d{3,4}$/.test(cvv)) {
+      Alert.alert('Error', 'CVV inválido. Debe tener 3 o 4 dígitos.');
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(`http://localhost:3001/reservas/${reserva.id}/estado`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'Pagado' }),
+      });
+
+      const data = await respuesta.json();
+
+      if (respuesta.ok) {
+        Alert.alert('Pago realizado', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        Alert.alert('Error', data.mensaje || 'No se pudo actualizar el estado.');
+      }
+    } catch (error) {
+      console.error('Error al actualizar estado:', error);
+      Alert.alert('Error', 'Error de red al actualizar el estado.');
+    }
+  };
+
+  // Formato legible para fecha ISO
+  const formatoFechaLegible = (fechaISO) => {
+    if (!fechaISO) return 'No especificado';
+    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>Resumen de la Reserva</Text>
 
-      {datosMostrar.map(({ label, valor }) => (
-        <View key={label} style={styles.item}>
-          <Text style={styles.label}>{label}:</Text>
-          <Text style={styles.valor}>{valor}</Text>
-        </View>
-      ))}
+      <View style={styles.dato}>
+        <Text style={styles.label}>Usuario:</Text>
+        <Text style={styles.valor}>{reserva.nombre_usuario || 'Desconocido'}</Text>
+      </View>
 
-      <TouchableOpacity style={styles.botonVolver} onPress={manejarVolver}>
-        <Text style={styles.textoBotonVolver}>← Volver</Text>
-      </TouchableOpacity>
+      <View style={styles.dato}>
+        <Text style={styles.label}>Pista:</Text>
+        <Text style={styles.valor}>{reserva.pista || 'No especificado'}</Text>
+      </View>
 
-      <TouchableOpacity style={styles.botonPago} onPress={manejarPago}>
-        <Text style={styles.textoBoton}>Pagar Ahora</Text>
+      <View style={styles.dato}>
+        <Text style={styles.label}>Fecha:</Text>
+        <Text style={styles.valor}>{formatoFechaLegible(reserva.fecha)}</Text>
+      </View>
+
+      <View style={styles.dato}>
+        <Text style={styles.label}>Hora Inicio:</Text>
+        <Text style={styles.valor}>{reserva.hora_inicio || 'No especificado'}</Text>
+      </View>
+
+      <View style={styles.dato}>
+        <Text style={styles.label}>Hora Fin:</Text>
+        <Text style={styles.valor}>{reserva.hora_fin || 'No especificado'}</Text>
+      </View>
+
+      <View style={styles.dato}>
+        <Text style={styles.label}>Ludoteca:</Text>
+        <Text style={styles.valor}>{reserva.ludoteca ? 'Sí' : 'No'}</Text>
+      </View>
+
+      <View style={styles.dato}>
+        <Text style={styles.label}>Estado:</Text>
+        <Text style={styles.valor}>{reserva.estado || 'Pendiente'}</Text>
+      </View>
+
+      <View style={styles.dato}>
+        <Text style={styles.label}>Precio Total:</Text>
+        <Text style={styles.valor}>{reserva.precio} €</Text>
+      </View>
+
+      <Text style={[styles.titulo, { marginTop: 20 }]}>Datos de Pago</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Nombre en la tarjeta"
+        value={nombreTarjeta}
+        onChangeText={setNombreTarjeta}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Número de tarjeta"
+        value={numeroTarjeta}
+        onChangeText={setNumeroTarjeta}
+        keyboardType="numeric"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Fecha expiración (MM/AA)"
+        value={fechaExpiracion}
+        onChangeText={setFechaExpiracion}
+        keyboardType="numeric"
+        maxLength={5}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="CVV"
+        value={cvv}
+        onChangeText={setCvv}
+        keyboardType="numeric"
+        maxLength={4}
+        secureTextEntry={true}
+      />
+
+      <TouchableOpacity style={styles.boton} onPress={manejarPago}>
+        <Text style={styles.botonTexto}>Pagar</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -64,76 +191,57 @@ export default function ResumenReserva({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
-    backgroundColor: '#f5f8fa',
-    flexGrow: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+    paddingBottom: 40,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 24,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 15,
+    color: '#222',
   },
-  item: {
-    marginBottom: 18,
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#00000020',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  dato: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
   label: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#555',
+    fontWeight: '600',
+    width: 140,
+    color: '#444',
   },
   valor: {
-    fontSize: 18,
-    color: '#222',
-    marginTop: 6,
+    flex: 1,
+    color: '#000',
+  },
+  input: {
+    borderColor: '#888',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  boton: {
+    backgroundColor: '#007bff',
+    borderRadius: 8,
+    paddingVertical: 14,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  botonTexto: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
   centrado: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
   },
   errorTexto: {
-    fontSize: 18,
     color: 'red',
-    textAlign: 'center',
-  },
-  botonVolver: {
-    marginTop: 30,
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  textoBotonVolver: {
-    color: '#555',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  botonPago: {
-    marginTop: 16,
-    backgroundColor: '#1976D2',
-    paddingVertical: 14,
-    borderRadius: 8,
-    shadowColor: '#1976D2',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
-    alignItems: 'center',
-  },
-  textoBoton: {
-    color: '#fff',
     fontSize: 18,
-    fontWeight: '700',
   },
 });

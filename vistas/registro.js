@@ -29,53 +29,53 @@ export default function Register({ navigation }) {
 
   // Manejar el registro del usuario
   const handleRegister = async () => {
-  Keyboard.dismiss();
+    Keyboard.dismiss();
 
-  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
-    setMensajeError('Por favor, completa todos los campos');
-    return;
-  }
-
-  if (!correoValido.test(correo)) {
-    setMensajeError('Correo electrónico no válido');
-    return;
-  }
-
-  if (pass !== pass_2) {
-    setMensajeError('Las contraseñas no coinciden');
-    return;
-  }
-
-  if (!aceptoPoliticas) {
-    setMensajeError('Debes aceptar las políticas de privacidad');
-    return;
-  }
-
-  try {
-    const response = await fetch('http://localhost:3001/registro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2,telefono, clave_admin: claveAdmin })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setMensajeError('');
-      Alert.alert('Éxito', 'Usuario registrado con éxito');
-      navigation.navigate('Login');
-    } else {
-      setMensajeError(data.error || 'No se pudo registrar el usuario');
+    if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
+      setMensajeError('Por favor, completa todos los campos');
+      return;
     }
-  } catch (error) {
-    console.error(error);
-    setMensajeError('No se pudo conectar con el servidor');
-  }
-};
 
-// Navegar a las políticas de privacidad
+    if (!correoValido.test(correo)) {
+      setMensajeError('Correo electrónico no válido');
+      return;
+    }
+
+    if (pass !== pass_2) {
+      setMensajeError('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (!aceptoPoliticas) {
+      setMensajeError('Debes aceptar las políticas de privacidad');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMensajeError('');
+        Alert.alert('Éxito', 'Usuario registrado con éxito');
+        navigation.navigate('Login');
+      } else {
+        setMensajeError(data.error || 'No se pudo registrar el usuario');
+      }
+    } catch (error) {
+      console.error(error);
+      setMensajeError('No se pudo conectar con el servidor');
+    }
+  };
+
+  // Navegar a las políticas de privacidad
   const navigateToPoliticas = () => {
     Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
   };
@@ -111,11 +111,20 @@ export default function Register({ navigation }) {
                 placeholderTextColor="#9CA3AF"
                 style={styles.input}
                 value={correo}
-                onChangeText={(text) => { setCorreo(text); setMensajeError(''); }}
+                onChangeText={(text) => {
+                  setCorreo(text);
+                  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (text === '' || regex.test(text)) {
+                    setMensajeError('');
+                  } else {
+                    setMensajeError('Correo electrónico no válido');
+                  }
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 returnKeyType="next"
               />
+
               <TextInput
                 placeholder="Nombre de usuario"
                 placeholderTextColor="#9CA3AF"

@@ -428,39 +428,47 @@ export default function AdminPanel({ navigation }) {
         </Text>
       </View>
       
-      <View style={styles.reservaInfo}>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Usuario: {item.nombre_usuario || 'Desconocido'}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Fecha: {new Date(item.fecha).toLocaleDateString()}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Hora: {item.hora_inicio} - {item.hora_fin}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Precio: {(() => {
-            const precioNum = Number(item.precio);
-            return isNaN(precioNum) ? '--' : precioNum.toFixed(2);
-          })()} €
-        </Text>
-      </View>
+   <View style={styles.reservaInfo}>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Usuario: {item.nombre_usuario || 'Desconocido'}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Fecha: {new Date(item.fecha).toLocaleDateString()}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Hora: {item.hora_inicio} - {item.hora_fin}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Precio: {(() => {
+      const precioNum = Number(item.precio);
+      return isNaN(precioNum) ? '--' : precioNum.toFixed(2);
+    })()} €
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Estado: {item.estado || 'Pendiente'}
+  </Text>
+</View>
+
       
       <TouchableOpacity
         style={[

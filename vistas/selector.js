@@ -82,7 +82,7 @@ export default function Selector({ navigation }) {
   <Ionicons name="list-outline" size={24} color="#fff" style={styles.buttonIcon} />
   <View>
     <Text style={styles.buttonText}>Mis Reservas</Text>
-    <Text style={styles.buttonSubtext}>Ver historial y reservas activas</Text>
+    <Text style={styles.buttonSubtext}>Mira tus reservas</Text>
   </View>
 </TouchableOpacity>
       </View>

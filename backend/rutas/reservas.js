@@ -8,7 +8,7 @@ router.post('/', (req, res) => {
   const {
     dni_usuario,
     nombre_usuario,
-    pista,
+    pista,      // id numérico de la pista
     fecha,
     hora_inicio,
     hora_fin,
@@ -16,20 +16,13 @@ router.post('/', (req, res) => {
     estado = 'pendiente'
   } = req.body;
 
-  // Validación de campos obligatorios
   if (!dni_usuario || !nombre_usuario || !pista || !fecha || !hora_inicio || !hora_fin) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'Faltan campos obligatorios' 
-    });
+    return res.status(400).json({ message: 'Faltan campos obligatorios' });
   }
 
   const pistaId = Number(pista);
   if (isNaN(pistaId)) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'ID de pista inválido' 
-    });
+    return res.status(400).json({ message: 'ID de pista inválido' });
   }
 
   // Comprobar disponibilidad
@@ -48,17 +41,11 @@ router.post('/', (req, res) => {
     (err, results) => {
       if (err) {
         console.error('Error al comprobar disponibilidad:', err);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error al comprobar disponibilidad' 
-        });
+        return res.status(500).json({ message: 'Error al comprobar disponibilidad' });
       }
 
       if (results.length > 0) {
-        return res.status(409).json({ 
-          success: false,
-          error: 'La pista no está disponible en el horario seleccionado' 
-        });
+        return res.status(409).json({ message: 'La pista no está disponible en el horario seleccionado' });
       }
 
       // Obtener precio de la pista
@@ -67,17 +54,11 @@ router.post('/', (req, res) => {
       db.query(precioSQL, [pistaId], (err, rows) => {
         if (err) {
           console.error('Error al obtener precio:', err);
-          return res.status(500).json({ 
-            success: false,
-            error: 'Error al obtener precio de la pista' 
-          });
+          return res.status(500).json({ message: 'Error al obtener precio de la pista' });
         }
 
         if (rows.length === 0) {
-          return res.status(404).json({ 
-            success: false,
-            error: 'Pista no encontrada' 
-          });
+          return res.status(404).json({ message: 'Precio no encontrado para la pista' });
         }
 
         const precioHora = parseFloat(rows[0].precio);
@@ -88,10 +69,7 @@ router.post('/', (req, res) => {
         const duracion = ((hFin * 60 + mFin) - (hInicio * 60 + mInicio)) / 60;
 
         if (duracion <= 0) {
-          return res.status(400).json({ 
-            success: false,
-            error: 'La hora de fin debe ser posterior a la hora de inicio' 
-          });
+          return res.status(400).json({ message: 'La hora de fin debe ser posterior a la hora de inicio' });
         }
 
         const precioTotal = precioHora * duracion;
@@ -108,10 +86,7 @@ router.post('/', (req, res) => {
           (err, result) => {
             if (err) {
               console.error('Error al insertar reserva:', err);
-              return res.status(500).json({ 
-                success: false,
-                error: 'Error al crear reserva' 
-              });
+              return res.status(500).json({ message: 'Error al insertar reserva' });
             }
 
             // Devolver reserva creada con datos de pista
@@ -125,22 +100,13 @@ router.post('/', (req, res) => {
             db.query(selectSQL, [result.insertId], (err, rows) => {
               if (err) {
                 console.error('Error al obtener reserva creada:', err);
-                return res.status(500).json({ 
-                  success: false,
-                  error: 'Error al obtener reserva creada' 
-                });
+                return res.status(500).json({ message: 'Error al obtener reserva creada' });
               }
               if (rows.length === 0) {
-                return res.status(404).json({ 
-                  success: false,
-                  error: 'Reserva no encontrada después de crearla' 
-                });
+                return res.status(404).json({ message: 'Reserva no encontrada después de crearla' });
               }
-              
-              res.status(201).json({
-                success: true,
-                data: rows[0]
-              });
+              console.log('Reserva creada:', rows[0]);
+              res.status(201).json(rows[0]);
             });
           }
         );
@@ -163,19 +129,13 @@ router.get('/', (req, res) => {
   db.query(sql, (err, results) => {
     if (err) {
       console.error('Error al obtener reservas:', err);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener reservas' 
-      });
+      return res.status(500).json({ message: 'Error al obtener reservas' });
     }
-    res.json({
-      success: true,
-      data: results
-    });
+    res.json(results);
   });
 });
 
-// Eliminar una reserva
+// Eliminar una reserva por id
 router.delete('/:id', (req, res) => {
   const db = req.app.get('conexion');
   const { id } = req.params;
@@ -191,17 +151,11 @@ router.delete('/:id', (req, res) => {
   db.query(selectSQL, [id], (err, rows) => {
     if (err) {
       console.error('Error al obtener reserva:', err);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error interno del servidor' 
-      });
+      return res.status(500).json({ error: 'Error interno del servidor' });
     }
 
     if (rows.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Reserva no encontrada' 
-      });
+      return res.status(404).json({ error: 'Reserva no encontrada' });
     }
 
     const reserva = rows[0];
@@ -212,109 +166,60 @@ router.delete('/:id', (req, res) => {
     db.query(deleteSQL, [id], (err, result) => {
       if (err) {
         console.error('Error al eliminar reserva:', err);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error interno del servidor' 
-        });
+        return res.status(500).json({ error: 'Error interno del servidor' });
       }
       if (result.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Reserva no encontrada' 
-        });
+        return res.status(404).json({ error: 'Reserva no encontrada' });
       }
 
       // Devolver datos de la reserva borrada
       res.json({
-        success: true,
-        data: {
+        message: 'Reserva eliminada correctamente',
+        reserva: {
           id: reserva.id,
           nombre_pista: reserva.nombre_pista,
           fecha: reserva.fecha,
           precio: reserva.precio,
           estado: reserva.estado,
-        },
-        message: 'Reserva eliminada correctamente'
+        }
       });
     });
   });
 });
 
-// Marcar reserva como pagada
-router.put('/:id/pagar', (req, res) => {
-  const db = req.app.get('conexion');
+
+router.put('/:id/estado', (req, res) => {
+  const db = req.app.get('conexion');  // obtener conexión a DB desde app
   const { id } = req.params;
+  const { estado } = req.body;
 
   if (!id) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'ID de reserva requerido' 
-    });
+    return res.status(400).json({ mensaje: 'Id de reserva requerido' });
+  }
+  if (!estado) {
+    return res.status(400).json({ mensaje: 'El estado es requerido' });
   }
 
-  // Primero verificar que la reserva existe y está pendiente
-  const verificarSQL = 'SELECT * FROM reservas WHERE id = ? AND estado = ?';
-  
-  db.query(verificarSQL, [id, 'pendiente'], (err, results) => {
+  const sql = 'UPDATE reservas SET estado = ? WHERE id = ?';
+
+  db.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error('Error al verificar reserva:', err);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al verificar reserva' 
-      });
+      console.error('Error al actualizar estado:', err);
+      return res.status(500).json({ mensaje: 'Error al actualizar el estado' });
     }
 
-    if (results.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Reserva no encontrada o ya no está pendiente' 
-      });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ mensaje: 'Reserva no encontrada' });
     }
 
-    // Actualizar estado a pagado
-    const actualizarSQL = 'UPDATE reservas SET estado = ? WHERE id = ?';
-    
-    db.query(actualizarSQL, ['pagado', id], (err, result) => {
-      if (err) {
-        console.error('Error al actualizar estado:', err);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error al marcar como pagada' 
-        });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Reserva no encontrada' 
-        });
-      }
-
-      // Obtener la reserva actualizada para devolverla
-      const obtenerSQL = `
-        SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
-        FROM reservas r
-        LEFT JOIN pistas p ON r.pista = p.id
-        WHERE r.id = ?
-      `;
-      
-      db.query(obtenerSQL, [id], (err, rows) => {
-        if (err) {
-          console.error('Error al obtener reserva actualizada:', err);
-          return res.status(500).json({ 
-            success: false,
-            error: 'Error al obtener reserva actualizada' 
-          });
-        }
-
-        res.json({
-          success: true,
-          data: rows[0],
-          message: 'Reserva marcada como pagada correctamente'
-        });
-      });
-    });
+    res.json({ mensaje: 'Estado actualizado correctamente' });
   });
 });
+
+module.exports = router;
+
+
+
+
 
 module.exports = router;

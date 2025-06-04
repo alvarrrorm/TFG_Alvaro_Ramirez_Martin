@@ -59,12 +59,12 @@ export default function AdminPanel({ navigation }) {
       const pistasResponse = await fetch(API_URL);
       if (!pistasResponse.ok) throw new Error(`Error ${pistasResponse.status}: ${await pistasResponse.text()}`);
       const pistasData = await pistasResponse.json();
-      setPistas(Array.isArray(pistasData) ? pistasData : []); // Asegurarse de que es un array
+      setPistas(pistasData);
       
       const reservasResponse = await fetch(RESERVAS_URL);
       if (!reservasResponse.ok) throw new Error(`Error ${reservasResponse.status}: ${await reservasResponse.text()}`);
       const reservasData = await reservasResponse.json();
-      setReservas(Array.isArray(reservasData) ? reservasData : []); // Asegurarse de que es un array
+      setReservas(reservasData);
       
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -80,21 +80,20 @@ export default function AdminPanel({ navigation }) {
   }, [fetchData]);
 
   // Agrupar pistas por tipo para el SectionList
-  const pistasPorTipo = Array.isArray(pistas) ? pistas.reduce((acc, pista) => {
+  const pistasPorTipo = pistas.reduce((acc, pista) => {
     const tipo = pista.tipo;
     if (!acc[tipo]) {
       acc[tipo] = [];
     }
     acc[tipo].push(pista);
     return acc;
-  }, {}) : {};
+  }, {});
 
   const sections = Object.keys(pistasPorTipo).map(tipo => ({
     title: tipo,
     data: pistasPorTipo[tipo]
   }));
 
-  // Resto del código sigue igual...
   // Agregar nueva pista
   const agregarPista = async () => {
     setErrorNombreRepetido('');
@@ -429,46 +428,47 @@ export default function AdminPanel({ navigation }) {
         </Text>
       </View>
       
-      <View style={styles.reservaInfo}>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Usuario: {item.nombre_usuario || 'Desconocido'}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Fecha: {new Date(item.fecha).toLocaleDateString()}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Hora: {item.hora_inicio} - {item.hora_fin}
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Precio: {(() => {
-            const precioNum = Number(item.precio);
-            return isNaN(precioNum) ? '--' : precioNum.toFixed(2);
-          })()} €
-        </Text>
-        <Text style={[
-          styles.reservaTexto, 
-          isLargeScreen && styles.reservaTextoLarge,
-          isSmallScreen && styles.reservaTextoSmall
-        ]}>
-          Estado: {item.estado || 'Pendiente'}
-        </Text>
-      </View>
+   <View style={styles.reservaInfo}>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Usuario: {item.nombre_usuario || 'Desconocido'}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Fecha: {new Date(item.fecha).toLocaleDateString()}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Hora: {item.hora_inicio} - {item.hora_fin}
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Precio: {(() => {
+      const precioNum = Number(item.precio);
+      return isNaN(precioNum) ? '--' : precioNum.toFixed(2);
+    })()} €
+  </Text>
+  <Text style={[
+    styles.reservaTexto, 
+    isLargeScreen && styles.reservaTextoLarge,
+    isSmallScreen && styles.reservaTextoSmall
+  ]}>
+    Estado: {item.estado || 'Pendiente'}
+  </Text>
+</View>
+
       
       <TouchableOpacity
         style={[

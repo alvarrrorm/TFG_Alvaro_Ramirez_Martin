@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 
 export default function ResumenReserva({ route, navigation }) {
   const reserva = route?.params?.reserva;
@@ -60,50 +60,37 @@ export default function ResumenReserva({ route, navigation }) {
       return;
     }
 
-    const regexNumeroTarjeta = /^\d{16}$/;
-    const regexFecha = /^(0[1-9]|1[0-2])\/\d{2}$/;
-    const regexCVV = /^\d{3,4}$/;
-
-    if (!regexNumeroTarjeta.test(numeroTarjeta)) {
-      Alert.alert('Error', 'El número de tarjeta debe contener exactamente 16 dígitos numéricos.');
+    const soloNumeros = numeroTarjeta.replace(/\D/g, '');
+    if (!validarTarjeta(soloNumeros)) {
+      Alert.alert('Error', 'Número de tarjeta inválido.');
       return;
     }
 
-    if (!validarTarjeta(numeroTarjeta)) {
-      Alert.alert('Error', 'Número de tarjeta inválido (falla validación Luhn).');
+    if (!validarFecha(fechaExpiracion)) {
+      Alert.alert('Error', 'Fecha de expiración inválida.');
       return;
     }
 
-    if (!regexFecha.test(fechaExpiracion) || !validarFecha(fechaExpiracion)) {
-      Alert.alert('Error', 'La fecha de expiración es inválida. Usa el formato MM/AA y asegúrate de que no sea una fecha pasada.');
-      return;
-    }
-
-    if (!regexCVV.test(cvv)) {
-      Alert.alert('Error', 'CVV inválido. Debe tener 3 o 4 dígitos numéricos.');
+    if (!/^\d{3,4}$/.test(cvv)) {
+      Alert.alert('Error', 'CVV inválido. Debe tener 3 o 4 dígitos.');
       return;
     }
 
     try {
-      const respuesta = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
+      const respuesta = await fetch(`http://localhost:3001/reservas/${reserva.id}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'pagado' }),
+        body: JSON.stringify({ estado: 'Pagado' }),
       });
 
       const data = await respuesta.json();
 
       if (respuesta.ok) {
-        if (Platform.OS === 'web') {
-          window.alert(`Se ha procesado el pago de ${reserva.precio} € correctamente.`);
-          navigation.navigate('Reservas');
-        } else {
-          Alert.alert('Pago realizado', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
-            { text: 'OK', onPress: () => navigation.navigate('Reservas') },
-          ]);
-        }
+        Alert.alert('Pago realizado', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
       } else {
-        Alert.alert('Error', data?.mensaje || 'Error al procesar el pago.');
+        Alert.alert('Error', data.mensaje || 'No se pudo actualizar el estado.');
       }
     } catch (error) {
       console.error('Error al actualizar estado:', error);
@@ -170,21 +157,13 @@ export default function ResumenReserva({ route, navigation }) {
         value={nombreTarjeta}
         onChangeText={setNombreTarjeta}
       />
-
       <TextInput
         style={styles.input}
-        placeholder="Número de tarjeta (16 dígitos)"
+        placeholder="Número de tarjeta"
         value={numeroTarjeta}
-        onChangeText={(texto) => {
-          const soloNumeros = texto.replace(/\D/g, '');
-          if (soloNumeros.length <= 16) {
-            setNumeroTarjeta(soloNumeros);
-          }
-        }}
+        onChangeText={setNumeroTarjeta}
         keyboardType="numeric"
-        maxLength={16}
       />
-
       <TextInput
         style={styles.input}
         placeholder="Fecha expiración (MM/AA)"
@@ -193,7 +172,6 @@ export default function ResumenReserva({ route, navigation }) {
         keyboardType="numeric"
         maxLength={5}
       />
-
       <TextInput
         style={styles.input}
         placeholder="CVV"

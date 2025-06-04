@@ -31,7 +31,6 @@ export default function FormularioReserva({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Genera horas desde las 08:00 hasta las 22:00
   const horasDisponibles = Array.from({ length: 15 }, (_, i) => {
     const h = 8 + i;
     return `${h.toString().padStart(2, '0')}:00`;
@@ -40,11 +39,7 @@ export default function FormularioReserva({ navigation }) {
   useEffect(() => {
     fetch('http://localhost:3001/pistas')
       .then(res => res.json())
-      .then(data => {
-        // Filtra solo pistas disponibles (si tienes el campo disponible)
-        const pistasDisponibles = data.filter(p => p.disponible !== 0);
-        setPistas(pistasDisponibles);
-      })
+      .then(data => setPistas(data))
       .catch(() => Alert.alert('Error', 'No se pudieron cargar las pistas'));
   }, []);
 
@@ -54,6 +49,7 @@ export default function FormularioReserva({ navigation }) {
     return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
   };
 
+  // Calcular precio total
   const calcularPrecio = () => {
     if (!form.pista || !form.horaInicio || !form.horaFin) return 0;
     const pista = pistas.find(p => p.id.toString() === form.pista);
@@ -69,65 +65,65 @@ export default function FormularioReserva({ navigation }) {
 
   const precioTotal = calcularPrecio();
   const pistaSeleccionada = pistas.find(p => p.id.toString() === form.pista);
-  const duracion =
-    form.horaInicio && form.horaFin
-      ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
-      : 0;
+  const duracion = form.horaInicio && form.horaFin
+    ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
+    : 0;
+const handleSubmit = async () => {
+  if (!form.pista || !form.fecha) {
+    Alert.alert('Error', 'Por favor completa todos los campos');
+    return;
+  }
+  if (form.horaFin <= form.horaInicio) {
+    Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
+    return;
+  }
 
-  const handleSubmit = async () => {
-    if (!form.pista || !form.fecha) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
-    if (form.horaFin <= form.horaInicio) {
-      Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
-      return;
-    }
+  setLoading(true);
+  try {
+    const res = await fetch('http://localhost:3001/reservas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: form.pista,
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+      }),
+    });
 
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:3001/reservas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dni_usuario: dni,
-          nombre_usuario: nombre,
-          pista: form.pista,
-          fecha: form.fecha,
-          hora_inicio: form.horaInicio,
-          hora_fin: form.horaFin,
-          ludoteca: form.ludoteca,
-          estado: 'pendiente',
-          precio: precioTotal,
-        }),
-      });
+    if (!res.ok) throw new Error('Error al crear la reserva');
+    const data = await res.json(); // Aquí recibimos el id
 
-      if (!res.ok) throw new Error('Error al crear la reserva');
-      const data = await res.json();
+    Alert.alert('Éxito', 'Reserva creada correctamente');
 
-      Alert.alert('Éxito', 'Reserva creada correctamente');
+    navigation.navigate('ResumenReserva', {
+      reserva: {
+        id: data.id,  // <-- Pasamos el id aquí
+        id_pista: pistaSeleccionada?.id || '',
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: pistaSeleccionada?.nombre || '',
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+      }
+    });
 
-      navigation.navigate('ResumenReserva', {
-        reserva: {
-          id: data.id,
-          id_pista: pistaSeleccionada?.id || '',
-          dni_usuario: dni,
-          nombre_usuario: nombre,
-          pista: pistaSeleccionada?.nombre || '',
-          fecha: form.fecha,
-          hora_inicio: form.horaInicio,
-          hora_fin: form.horaFin,
-          ludoteca: form.ludoteca,
-          estado: 'pendiente',
-          precio: precioTotal,
-        },
-      });
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    Alert.alert('Error', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -178,7 +174,7 @@ export default function FormularioReserva({ navigation }) {
               value={form.fecha ? new Date(form.fecha) : new Date()}
               mode="date"
               display="default"
-              locale="es"
+              locale='es'
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
                 if (selectedDate) {
@@ -225,6 +221,7 @@ export default function FormularioReserva({ navigation }) {
           onPress={() => setForm({ ...form, ludoteca: !form.ludoteca })}
           color="#1976D2"
         />
+
         <Text style={styles.checkboxLabel}>Incluir servicio de ludoteca</Text>
       </View>
 
@@ -254,7 +251,6 @@ export default function FormularioReserva({ navigation }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     padding: 24,
@@ -331,6 +327,23 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 16,
     color: '#1976D2',
+  },
+  resumenContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 30,
+  },
+  resumenTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#0d47a1',
+  },
+  resumenText: {
+    fontSize: 16,
+    marginBottom: 6,
+    color: '#0d47a1',
   },
   boton: {
     backgroundColor: '#1976D2',

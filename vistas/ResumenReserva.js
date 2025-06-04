@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 
 export default function ResumenReserva({ route, navigation }) {
   const reserva = route?.params?.reserva;
@@ -20,18 +20,6 @@ export default function ResumenReserva({ route, navigation }) {
       </View>
     );
   }
-
-  // Función para mostrar alertas en móvil y web
-  const mostrarAlerta = (titulo, mensaje, opciones) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${titulo}\n\n${mensaje}`);
-      if (opciones && opciones.length > 0 && opciones[0].onPress) {
-        opciones[0].onPress(); // Ejecutar el callback si existe
-      }
-    } else {
-      Alert.alert(titulo, mensaje, opciones);
-    }
-  };
 
   // Validación Luhn para número de tarjeta
   const validarTarjeta = (numero) => {
@@ -67,24 +55,24 @@ export default function ResumenReserva({ route, navigation }) {
   };
 
   const manejarPago = async () => {
-    if (!nombreTarjeta.trim() || !numeroTarjeta.trim() || !fechaExpiracion.trim() || !cvv.trim()) {
-      mostrarAlerta('Error', 'Por favor, completa todos los campos de pago.');
+    if (!nombreTarjeta || !numeroTarjeta || !fechaExpiracion || !cvv) {
+      Alert.alert('Error', 'Por favor, completa todos los campos de pago.');
       return;
     }
 
     const soloNumeros = numeroTarjeta.replace(/\D/g, '');
     if (!validarTarjeta(soloNumeros)) {
-      mostrarAlerta('Error', 'Número de tarjeta inválido.');
+      Alert.alert('Error', 'Número de tarjeta inválido.');
       return;
     }
 
     if (!validarFecha(fechaExpiracion)) {
-      mostrarAlerta('Error', 'Fecha de expiración inválida o pasada.');
+      Alert.alert('Error', 'Fecha de expiración inválida.');
       return;
     }
 
     if (!/^\d{3,4}$/.test(cvv)) {
-      mostrarAlerta('Error', 'CVV inválido. Debe tener 3 o 4 dígitos.');
+      Alert.alert('Error', 'CVV inválido. Debe tener 3 o 4 dígitos.');
       return;
     }
 
@@ -98,18 +86,15 @@ export default function ResumenReserva({ route, navigation }) {
       const data = await respuesta.json();
 
       if (respuesta.ok) {
-        mostrarAlerta('Pago realizado', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Reservas'),
-          },
+        Alert.alert('Pago realizado', `Se ha procesado el pago de ${reserva.precio} € correctamente.`, [
+          { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
-        mostrarAlerta('Error', data.mensaje || 'No se pudo actualizar el estado.');
+        Alert.alert('Error', data.mensaje || 'No se pudo actualizar el estado.');
       }
     } catch (error) {
       console.error('Error al actualizar estado:', error);
-      mostrarAlerta('Error', 'Error de red al actualizar el estado.');
+      Alert.alert('Error', 'Error de red al actualizar el estado.');
     }
   };
 
@@ -171,7 +156,6 @@ export default function ResumenReserva({ route, navigation }) {
         placeholder="Nombre en la tarjeta"
         value={nombreTarjeta}
         onChangeText={setNombreTarjeta}
-        autoCapitalize="words"
       />
       <TextInput
         style={styles.input}
@@ -179,7 +163,6 @@ export default function ResumenReserva({ route, navigation }) {
         value={numeroTarjeta}
         onChangeText={setNumeroTarjeta}
         keyboardType="numeric"
-        maxLength={19}
       />
       <TextInput
         style={styles.input}

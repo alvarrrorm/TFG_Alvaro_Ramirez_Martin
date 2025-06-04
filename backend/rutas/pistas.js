@@ -8,182 +8,74 @@ router.get('/', (req, res) => {
   conexion.query('SELECT * FROM pistas ORDER BY id', (error, results) => {
     if (error) {
       console.error('Error al obtener pistas:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener pistas' 
-      });
+      return res.status(500).json({ error: 'Error al obtener pistas' });
     }
 
-    res.json({
-      success: true,
-      data: results.map(pista => ({
-        id: pista.id,
-        nombre: pista.nombre,
-        tipo: pista.tipo,
-        precio: pista.precio,
-        disponible: pista.disponible === 1,
-        enMantenimiento: pista.disponible === 0
-      }))
-    });
+    const pistas = results.map(pista => ({
+      id: pista.id,
+      nombre: pista.nombre,
+      tipo: pista.tipo,
+      precio: pista.precio,
+      disponible: pista.disponible,
+      enMantenimiento: pista.disponible === 0
+    }));
+
+    res.json(pistas);
   });
 });
 
-// Obtener pistas disponibles
-router.get('/disponibles', (req, res) => {
-  const conexion = req.app.get('conexion');
-
-  conexion.query('SELECT * FROM pistas WHERE disponible = 1 ORDER BY id', (error, results) => {
-    if (error) {
-      console.error('Error al obtener pistas disponibles:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener pistas disponibles' 
-      });
-    }
-
-    res.json({
-      success: true,
-      data: results.map(pista => ({
-        id: pista.id,
-        nombre: pista.nombre,
-        tipo: pista.tipo,
-        precio: pista.precio,
-        disponible: true,
-        enMantenimiento: false
-      }))
-    });
-  });
-});
-
-// Agregar nueva pista
+// Agregar nueva pista (con validación de nombre duplicado)
 router.post('/', (req, res) => {
   const { nombre, tipo, precio } = req.body;
   const conexion = req.app.get('conexion');
 
   if (!nombre || !tipo || precio === undefined) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'Nombre, tipo y precio son obligatorios' 
-    });
+    return res.status(400).json({ error: 'Nombre, tipo y precio son obligatorios' });
   }
 
   if (isNaN(parseFloat(precio))) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'El precio debe ser un número válido' 
-    });
+    return res.status(400).json({ error: 'El precio debe ser un número válido' });
   }
 
   const sql = "SELECT * FROM pistas WHERE nombre COLLATE utf8mb4_general_ci = ?";
+
   conexion.query(sql, [nombre], (error, results) => {
     if (error) {
       console.error('Error al verificar pista existente:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al verificar pista existente' 
-      });
+      return res.status(500).json({ error: 'Error al verificar pista existente' });
     }
 
     if (results.length > 0) {
-      return res.status(409).json({ 
-        success: false,
-        error: 'Ya existe una pista con ese nombre' 
-      });
+      return res.status(409).json({ error: 'Ya existe una pista con ese nombre' });
     }
 
+    // Insertar nueva pista
     conexion.query(
-      'INSERT INTO pistas (nombre, tipo, precio, disponible) VALUES (?, ?, ?, ?)',
-      [nombre, tipo, parseFloat(precio), 1],
-      (error, results) => {
+      'INSERT INTO pistas (nombre, tipo, precio, disponible) VALUES (?, ?, ?, 1)',
+      [nombre, tipo, parseFloat(precio)],
+      (error, result) => {
         if (error) {
-          console.error('Error al agregar pista:', error);
-          return res.status(500).json({ 
-            success: false,
-            error: 'Error al agregar pista' 
-          });
+          console.error('Error al insertar pista:', error);
+          return res.status(500).json({ error: 'Error al insertar pista' });
         }
 
-        res.status(201).json({
-          success: true,
-          data: {
-            id: results.insertId,
-            nombre,
-            tipo,
-            precio: parseFloat(precio),
-            disponible: true,
-            enMantenimiento: false
-          }
-        });
-      }
-    );
-  });
-});
-
-// Cambiar estado de mantenimiento
-router.patch('/:id/mantenimiento', (req, res) => {
-  const { id } = req.params;
-  const { enMantenimiento } = req.body;
-  const conexion = req.app.get('conexion');
-
-  if (typeof enMantenimiento !== 'boolean') {
-    return res.status(400).json({ 
-      success: false,
-      error: 'El campo enMantenimiento debe ser un valor booleano (true/false)' 
-    });
-  }
-
-  const disponible = enMantenimiento ? 0 : 1;
-
-  conexion.query('SELECT id FROM pistas WHERE id = ?', [id], (error, results) => {
-    if (error) {
-      console.error('Error al verificar pista:', error);
-      return res.status(500).json({ 
-        success: false,
-        error: 'Error al verificar pista' 
-      });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Pista no encontrada' 
-      });
-    }
-
-    conexion.query(
-      'UPDATE pistas SET disponible = ? WHERE id = ?',
-      [disponible, id],
-      (error, updateResults) => {
-        if (error) {
-          console.error('Error al actualizar estado:', error);
-          return res.status(500).json({ 
-            success: false,
-            error: 'Error al actualizar estado de mantenimiento' 
-          });
-        }
-
+        // Obtener la pista recién insertada
         conexion.query(
           'SELECT * FROM pistas WHERE id = ?',
-          [id],
-          (error, pistaResults) => {
-            if (error || pistaResults.length === 0) {
-              return res.status(500).json({ 
-                success: false,
-                error: 'Error al obtener pista actualizada' 
-              });
+          [result.insertId],
+          (error, results) => {
+            if (error || results.length === 0) {
+              return res.status(404).json({ error: 'Pista no encontrada después de insertar' });
             }
 
-            const pistaActualizada = pistaResults[0];
-            res.json({
-              success: true,
-              data: {
-                id: pistaActualizada.id,
-                nombre: pistaActualizada.nombre,
-                tipo: pistaActualizada.tipo,
-                precio: pistaActualizada.precio,
-                disponible: pistaActualizada.disponible === 1,
-                enMantenimiento: pistaActualizada.disponible === 0
-              }
+            const nuevaPista = results[0];
+            res.status(201).json({
+              id: nuevaPista.id,
+              nombre: nuevaPista.nombre,
+              tipo: nuevaPista.tipo,
+              precio: nuevaPista.precio,
+              disponible: nuevaPista.disponible,
+              enMantenimiento: nuevaPista.disponible === 0
             });
           }
         );
@@ -192,17 +84,58 @@ router.patch('/:id/mantenimiento', (req, res) => {
   });
 });
 
-// Actualizar precio de pista
+// Actualizar estado de mantenimiento
+router.patch('/:id/mantenimiento', (req, res) => {
+  const { id } = req.params;
+  const { enMantenimiento } = req.body;
+  const conexion = req.app.get('conexion');
+
+  if (typeof enMantenimiento !== 'boolean') {
+    return res.status(400).json({ error: 'enMantenimiento debe ser booleano' });
+  }
+
+  const disponible = enMantenimiento ? 0 : 1;
+
+  conexion.query(
+    'UPDATE pistas SET disponible = ? WHERE id = ?',
+    [disponible, id],
+    (error) => {
+      if (error) {
+        console.error('Error al actualizar pista:', error);
+        return res.status(500).json({ error: 'Error al actualizar pista' });
+      }
+
+      conexion.query(
+        'SELECT * FROM pistas WHERE id = ?',
+        [id],
+        (error, results) => {
+          if (error || results.length === 0) {
+            return res.status(404).json({ error: 'Pista no encontrada' });
+          }
+
+          const pistaActualizada = results[0];
+          res.json({
+            id: pistaActualizada.id,
+            nombre: pistaActualizada.nombre,
+            tipo: pistaActualizada.tipo,
+            precio: pistaActualizada.precio,
+            disponible: pistaActualizada.disponible,
+            enMantenimiento: pistaActualizada.disponible === 0
+          });
+        }
+      );
+    }
+  );
+});
+
+// Actualizar precio de la pista
 router.patch('/:id/precio', (req, res) => {
   const { id } = req.params;
   const { precio } = req.body;
   const conexion = req.app.get('conexion');
 
   if (precio === undefined || isNaN(parseFloat(precio))) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'Precio debe ser un número válido' 
-    });
+    return res.status(400).json({ error: 'Precio debe ser un número válido' });
   }
 
   conexion.query(
@@ -211,17 +144,11 @@ router.patch('/:id/precio', (req, res) => {
     (error, results) => {
       if (error) {
         console.error('Error al actualizar precio:', error);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error al actualizar precio' 
-        });
+        return res.status(500).json({ error: 'Error al actualizar precio' });
       }
 
       if (results.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Pista no encontrada' 
-        });
+        return res.status(404).json({ error: 'Pista no encontrada' });
       }
 
       conexion.query(
@@ -229,23 +156,17 @@ router.patch('/:id/precio', (req, res) => {
         [id],
         (error, results) => {
           if (error || results.length === 0) {
-            return res.status(500).json({ 
-              success: false,
-              error: 'Error al obtener pista actualizada' 
-            });
+            return res.status(404).json({ error: 'Pista no encontrada' });
           }
 
           const pistaActualizada = results[0];
           res.json({
-            success: true,
-            data: {
-              id: pistaActualizada.id,
-              nombre: pistaActualizada.nombre,
-              tipo: pistaActualizada.tipo,
-              precio: pistaActualizada.precio,
-              disponible: pistaActualizada.disponible === 1,
-              enMantenimiento: pistaActualizada.disponible === 0
-            }
+            id: pistaActualizada.id,
+            nombre: pistaActualizada.nombre,
+            tipo: pistaActualizada.tipo,
+            precio: pistaActualizada.precio,
+            disponible: pistaActualizada.disponible,
+            enMantenimiento: pistaActualizada.disponible === 0
           });
         }
       );
@@ -264,23 +185,14 @@ router.delete('/:id', (req, res) => {
     (error, results) => {
       if (error) {
         console.error('Error al eliminar pista:', error);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error al eliminar pista' 
-        });
+        return res.status(500).json({ error: 'Error al eliminar pista' });
       }
 
       if (results.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Pista no encontrada' 
-        });
+        return res.status(404).json({ error: 'Pista no encontrada' });
       }
 
-      res.json({ 
-        success: true,
-        message: 'Pista eliminada correctamente' 
-      });
+      res.json({ message: 'Pista eliminada correctamente' });
     }
   );
 });

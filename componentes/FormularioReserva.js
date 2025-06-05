@@ -21,6 +21,7 @@ export default function FormularioReserva({ navigation }) {
   const nombre = usuario || '';
 
   const [pistas, setPistas] = useState([]);
+  const [loadingPistas, setLoadingPistas] = useState(true);
   const [form, setForm] = useState({
     pista: '',
     fecha: '',
@@ -36,12 +37,31 @@ export default function FormularioReserva({ navigation }) {
     return `${h.toString().padStart(2, '0')}:00`;
   });
 
-  useEffect(() => {
-    fetch('http://localhost:3001/pistas')
-      .then(res => res.json())
-      .then(data => setPistas(data))
-      .catch(() => Alert.alert('Error', 'No se pudieron cargar las pistas'));
-  }, []);
+useEffect(() => {
+  const fetchPistas = async () => {
+    setLoadingPistas(true);
+    try {
+      const res = await fetch('http://localhost:3001/pistas');
+      if (!res.ok) throw new Error('Failed to fetch pistas');
+      const response = await res.json();
+      
+      // Verifica si la respuesta tiene la estructura esperada
+      if (!response.success || !Array.isArray(response.data)) {
+        throw new Error('Invalid data format received');
+      }
+      
+      setPistas(response.data); // Usamos response.data en lugar de response directamente
+    } catch (error) {
+      console.error('Error fetching pistas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las pistas');
+      setPistas([]);
+    } finally {
+      setLoadingPistas(false);
+    }
+  };
+
+  fetchPistas();
+}, []);
 
   const formatoFechaLegible = fechaISO => {
     if (!fechaISO) return 'Selecciona una fecha';
@@ -49,11 +69,13 @@ export default function FormularioReserva({ navigation }) {
     return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
   };
 
-  // Calcular precio total
   const calcularPrecio = () => {
     if (!form.pista || !form.horaInicio || !form.horaFin) return 0;
+    
+    if (!Array.isArray(pistas)) return 0;
+    
     const pista = pistas.find(p => p.id.toString() === form.pista);
-    if (!pista) return 0;
+    if (!pista || !pista.precio) return 0;
 
     const hi = parseInt(form.horaInicio.split(':')[0], 10);
     const hf = parseInt(form.horaFin.split(':')[0], 10);
@@ -64,66 +86,70 @@ export default function FormularioReserva({ navigation }) {
   };
 
   const precioTotal = calcularPrecio();
-  const pistaSeleccionada = pistas.find(p => p.id.toString() === form.pista);
+  const pistaSeleccionada = Array.isArray(pistas) 
+    ? pistas.find(p => p.id.toString() === form.pista)
+    : null;
+    
   const duracion = form.horaInicio && form.horaFin
     ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
     : 0;
-const handleSubmit = async () => {
-  if (!form.pista || !form.fecha) {
-    Alert.alert('Error', 'Por favor completa todos los campos');
-    return;
-  }
-  if (form.horaFin <= form.horaInicio) {
-    Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
-    return;
-  }
 
-  setLoading(true);
-  try {
-    const res = await fetch('http://localhost:3001/reservas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dni_usuario: dni,
-        nombre_usuario: nombre,
-        pista: form.pista,
-        fecha: form.fecha,
-        hora_inicio: form.horaInicio,
-        hora_fin: form.horaFin,
-        ludoteca: form.ludoteca,
-        estado: 'pendiente',
-        precio: precioTotal,
-      }),
-    });
+  const handleSubmit = async () => {
+    if (!form.pista || !form.fecha) {
+      Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+    if (form.horaFin <= form.horaInicio) {
+      Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
+      return;
+    }
 
-    if (!res.ok) throw new Error('Error al crear la reserva');
-    const data = await res.json(); // Aquí recibimos el id
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3001/reservas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni_usuario: dni,
+          nombre_usuario: nombre,
+          pista: form.pista,
+          fecha: form.fecha,
+          hora_inicio: form.horaInicio,
+          hora_fin: form.horaFin,
+          ludoteca: form.ludoteca,
+          estado: 'pendiente',
+          precio: precioTotal,
+        }),
+      });
 
-    Alert.alert('Éxito', 'Reserva creada correctamente');
+      if (!res.ok) throw new Error('Error al crear la reserva');
+      const data = await res.json();
 
-    navigation.navigate('ResumenReserva', {
-      reserva: {
-        id: data.id,  // <-- Pasamos el id aquí
-        id_pista: pistaSeleccionada?.id || '',
-        dni_usuario: dni,
-        nombre_usuario: nombre,
-        pista: pistaSeleccionada?.nombre || '',
-        fecha: form.fecha,
-        hora_inicio: form.horaInicio,
-        hora_fin: form.horaFin,
-        ludoteca: form.ludoteca,
-        estado: 'pendiente',
-        precio: precioTotal,
-      }
-    });
+      Alert.alert('Éxito', 'Reserva creada correctamente');
 
-  } catch (error) {
-    Alert.alert('Error', error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+      navigation.navigate('ResumenReserva', {
+        reserva: {
+          id: data.id,
+          id_pista: pistaSeleccionada?.id || '',
+          dni_usuario: dni,
+          nombre_usuario: nombre,
+          pista: pistaSeleccionada?.nombre || '',
+          fecha: form.fecha,
+          hora_inicio: form.horaInicio,
+          hora_fin: form.horaFin,
+          ludoteca: form.ludoteca,
+          estado: 'pendiente',
+          precio: precioTotal,
+        }
+      });
 
+    } catch (error) {
+      console.error('Error creating reservation:', error);
+      Alert.alert('Error', error.message || 'Ocurrió un error al crear la reserva');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -134,21 +160,25 @@ const handleSubmit = async () => {
 
       <Text style={styles.label}>Selecciona la pista</Text>
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={form.pista}
-          onValueChange={value => setForm({ ...form, pista: value })}
-          style={styles.picker}
-          dropdownIconColor="#1976D2"
-        >
-          <Picker.Item label="Selecciona una pista" value="" />
-          {pistas.map(pista => (
-            <Picker.Item
-              key={pista.id}
-              label={`${pista.nombre} - ${pista.precio} €/h`}
-              value={pista.id.toString()}
-            />
-          ))}
-        </Picker>
+        {loadingPistas ? (
+          <ActivityIndicator size="small" color="#1976D2" style={styles.loadingIndicator} />
+        ) : (
+          <Picker
+            selectedValue={form.pista}
+            onValueChange={value => setForm({ ...form, pista: value })}
+            style={styles.picker}
+            dropdownIconColor="#1976D2"
+          >
+            <Picker.Item label="Selecciona una pista" value="" />
+            {pistas.map(pista => (
+              <Picker.Item
+                key={pista.id}
+                label={`${pista.nombre} - ${pista.precio} €/h`}
+                value={pista.id.toString()}
+              />
+            ))}
+          </Picker>
+        )}
       </View>
 
       <Text style={styles.label}>Fecha de la reserva</Text>
@@ -221,7 +251,6 @@ const handleSubmit = async () => {
           onPress={() => setForm({ ...form, ludoteca: !form.ludoteca })}
           color="#1976D2"
         />
-
         <Text style={styles.checkboxLabel}>Incluir servicio de ludoteca</Text>
       </View>
 
@@ -242,15 +271,20 @@ const handleSubmit = async () => {
       )}
 
       <TouchableOpacity
-        style={[styles.boton, loading && styles.botonDisabled]}
+        style={[styles.boton, (loading || !form.pista || !form.fecha) && styles.botonDisabled]}
         onPress={handleSubmit}
-        disabled={loading}
+        disabled={loading || !form.pista || !form.fecha}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.botonTexto}>Reservar</Text>}
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.botonTexto}>Reservar</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     padding: 24,
@@ -328,22 +362,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1976D2',
   },
-  resumenContainer: {
-    backgroundColor: '#e3f2fd',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 30,
-  },
-  resumenTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#0d47a1',
-  },
-  resumenText: {
-    fontSize: 16,
-    marginBottom: 6,
-    color: '#0d47a1',
+  loadingIndicator: {
+    padding: 15,
   },
   boton: {
     backgroundColor: '#1976D2',

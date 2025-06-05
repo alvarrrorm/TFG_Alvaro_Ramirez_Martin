@@ -10,6 +10,7 @@ import CrearReserva from './vistas/NuevaReserva';
 import AdminPanel from './vistas/admin';
 import ResumenReserva from './vistas/ResumenReserva';
 
+import MisReservas from './vistas/MisReservas';
 
 const Stack = createStackNavigator();
 
@@ -68,6 +69,14 @@ export default function App() {
               title: 'Resumen de Reserva', 
             }}
             />
+          <Stack.Screen
+            name="MisReservas"
+            component={MisReservas}
+            options={{
+              headerShown: true,         
+              title: 'Mis Reservas', 
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </UserProvider>

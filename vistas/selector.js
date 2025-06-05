@@ -19,6 +19,7 @@ export default function Selector({ navigation }) {
   const [isHoveredReserve, setIsHoveredReserve] = useState(false);
   const [isHoveredAdmin, setIsHoveredAdmin] = useState(false);
   const [isHoveredLogout, setIsHoveredLogout] = useState(false);
+const [isHoveredMyReservations, setIsHoveredMyReservations] = useState(false);
 
   // Componente con TODO el contenido que va debajo del header fijo
   const Content = () => (
@@ -64,6 +65,25 @@ export default function Selector({ navigation }) {
             <Text style={styles.buttonSubtext}>Reservar pista ahora</Text>
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity
+  style={[
+    styles.button,
+    { backgroundColor: '#8B5CF6' }, // Color diferente (púrpura)
+    isHoveredMyReservations && styles.buttonHovered
+  ]}
+  onPress={() => navigation.navigate('MisReservas')}
+  activeOpacity={0.9}
+  onMouseEnter={() => Platform.OS === 'web' && setIsHoveredMyReservations(true)}
+  onMouseLeave={() => Platform.OS === 'web' && setIsHoveredMyReservations(false)}
+>
+  <Ionicons name="list-outline" size={24} color="#fff" style={styles.buttonIcon} />
+  <View>
+    <Text style={styles.buttonText}>Mis Reservas</Text>
+    <Text style={styles.buttonSubtext}>Ver y gestionar reservas</Text>
+  </View>
+</TouchableOpacity>
+
       </View>
 
       {/* Sección de instrucciones */}

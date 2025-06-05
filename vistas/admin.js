@@ -52,28 +52,42 @@ export default function AdminPanel({ navigation }) {
   const [precioEditando, setPrecioEditando] = useState('');
 
   // Cargar pistas y reservas desde la API
-  const fetchData = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      
-      const pistasResponse = await fetch(API_URL);
-      if (!pistasResponse.ok) throw new Error(`Error ${pistasResponse.status}: ${await pistasResponse.text()}`);
-      const pistasData = await pistasResponse.json();
-      setPistas(pistasData);
-      
-      const reservasResponse = await fetch(RESERVAS_URL);
-      if (!reservasResponse.ok) throw new Error(`Error ${reservasResponse.status}: ${await reservasResponse.text()}`);
-      const reservasData = await reservasResponse.json();
-      setReservas(reservasData);
-      
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+const fetchData = useCallback(async () => {
+  try {
+    setRefreshing(true);
+    
+    const pistasResponse = await fetch(API_URL);
+    if (!pistasResponse.ok) throw new Error(`Error ${pistasResponse.status}: ${await pistasResponse.text()}`);
+    const pistasData = await pistasResponse.json();
+    
+   
+    if (!pistasData.success || !Array.isArray(pistasData.data)) {
+      throw new Error('Formato de respuesta inválido');
     }
-  }, []);
+    
+    setPistas(pistasData.data); 
+    
+    const reservasResponse = await fetch(RESERVAS_URL);
+    if (!reservasResponse.ok) throw new Error(`Error ${reservasResponse.status}: ${await reservasResponse.text()}`);
+    const reservasData = await reservasResponse.json();
+    
+    // Verifica también la estructura de las reservas
+    if (!reservasData.success || !Array.isArray(reservasData.data)) {
+      throw new Error('Formato de respuesta inválido para reservas');
+    }
+    
+    setReservas(reservasData.data);
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+    Alert.alert('Error', 'No se pudieron cargar los datos');
+    setPistas([]); 
+    setReservas([]);
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, []);
 
   useEffect(() => {
     fetchData();

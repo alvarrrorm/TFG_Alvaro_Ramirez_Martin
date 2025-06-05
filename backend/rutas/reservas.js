@@ -240,81 +240,70 @@ router.delete('/:id', (req, res) => {
   });
 });
 
-// Marcar reserva como pagada
-router.put('/:id/pagar', (req, res) => {
+router.put('/:id/pagar', async (req, res) => {
   const db = req.app.get('conexion');
   const { id } = req.params;
 
-  if (!id) {
-    return res.status(400).json({ 
+  // 1. Validación robusta del ID
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({
       success: false,
-      error: 'ID de reserva requerido' 
+      error: 'ID de reserva inválido'
     });
   }
 
-  // Primero verificar que la reserva existe y está pendiente
-  const verificarSQL = 'SELECT * FROM reservas WHERE id = ? AND estado = ?';
-  
-  db.query(verificarSQL, [id, 'pendiente'], (err, results) => {
-    if (err) {
-      console.error('Error al verificar reserva:', err);
-      return res.status(500).json({ 
+  try {
+    // 2. Verificar existencia de la reserva
+    const [reserva] = await db.promise().query(
+      `SELECT id, estado FROM reservas WHERE id = ?`, 
+      [id]
+    );
+
+    if (reserva.length === 0) {
+      return res.status(404).json({
         success: false,
-        error: 'Error al verificar reserva' 
+        error: 'Reserva no encontrada'
       });
     }
 
-    if (results.length === 0) {
-      return res.status(404).json({ 
+    // 3. Verificar que no esté ya pagada
+    if (reserva[0].estado === 'pagado') {
+      return res.status(400).json({
         success: false,
-        error: 'Reserva no encontrada o ya no está pendiente' 
+        error: 'La reserva ya está pagada'
       });
     }
 
-    // Actualizar estado a pagado
-    const actualizarSQL = 'UPDATE reservas SET estado = ? WHERE id = ?';
-    
-    db.query(actualizarSQL, ['pagado', id], (err, result) => {
-      if (err) {
-        console.error('Error al actualizar estado:', err);
-        return res.status(500).json({ 
-          success: false,
-          error: 'Error al marcar como pagada' 
-        });
-      }
+    // 4. Actualizar estado
+    const [result] = await db.promise().query(
+      `UPDATE reservas SET estado = 'pagado' WHERE id = ?`,
+      [id]
+    );
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false,
-          error: 'Reserva no encontrada' 
-        });
-      }
+    // 5. Obtener datos actualizados
+    const [reservaActualizada] = await db.promise().query(
+      `SELECT r.*, p.nombre as nombre_pista 
+       FROM reservas r
+       JOIN pistas p ON r.pista = p.id
+       WHERE r.id = ?`,
+      [id]
+    );
 
-      // Obtener la reserva actualizada para devolverla
-      const obtenerSQL = `
-        SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
-        FROM reservas r
-        LEFT JOIN pistas p ON r.pista = p.id
-        WHERE r.id = ?
-      `;
-      
-      db.query(obtenerSQL, [id], (err, rows) => {
-        if (err) {
-          console.error('Error al obtener reserva actualizada:', err);
-          return res.status(500).json({ 
-            success: false,
-            error: 'Error al obtener reserva actualizada' 
-          });
-        }
-
-        res.json({
-          success: true,
-          data: rows[0],
-          message: 'Reserva marcada como pagada correctamente'
-        });
-      });
+    // 6. Respuesta exitosa
+    res.json({
+      success: true,
+      data: reservaActualizada[0],
+      message: 'Pago registrado exitosamente'
     });
-  });
+
+  } catch (error) {
+    console.error('Error en el proceso de pago:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
 });
+
 
 module.exports = router;

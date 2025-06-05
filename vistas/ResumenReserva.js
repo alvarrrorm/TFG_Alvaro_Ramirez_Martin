@@ -1,13 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Alert, 
+  ActivityIndicator,
+  Platform,
+  Modal,
+  TextInput
+} from 'react-native';
 
 export default function ResumenReserva({ route, navigation }) {
   const reserva = route?.params?.reserva;
-  const [nombreTarjeta, setNombreTarjeta] = useState('');
-  const [numeroTarjeta, setNumeroTarjeta] = useState('');
-  const [fechaExpiracion, setFechaExpiracion] = useState('');
-  const [cvv, setCvv] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [datosPago, setDatosPago] = useState({
+    nombre: '',
+    tarjeta: '',
+    expiracion: '',
+    cvv: ''
+  });
 
   useEffect(() => {
     console.log('Datos recibidos en ResumenReserva:', reserva);
@@ -21,123 +35,68 @@ export default function ResumenReserva({ route, navigation }) {
     );
   }
 
-  // Validación de tarjeta con algoritmo de Luhn
-  const validarTarjeta = (numero) => {
-    const limpio = numero.replace(/\D/g, '');
-    if (limpio.length < 13 || limpio.length > 19) return false;
-    
-    let suma = 0;
-    let alternar = false;
-    
-    for (let i = limpio.length - 1; i >= 0; i--) {
-      let n = parseInt(limpio.charAt(i), 10);
-      if (alternar) {
-        n *= 2;
-        if (n > 9) n = (n % 10) + 1;
-      }
-      suma += n;
-      alternar = !alternar;
-    }
-    return suma % 10 === 0;
-  };
-
-  // Validación de fecha MM/AA
-  const validarFecha = (fecha) => {
-    const [mes, anio] = fecha.split('/');
-    if (!mes || !anio || mes.length !== 2 || anio.length !== 2) return false;
-
-    const mesNum = parseInt(mes, 10);
-    const anioNum = parseInt(anio, 10);
-    const anioCompleto = 2000 + anioNum; // Asumimos siglo XXI
-    
-    if (isNaN(mesNum) || isNaN(anioNum)) return false;
-    if (mesNum < 1 || mesNum > 12) return false;
-
-    const ahora = new Date();
-    const mesActual = ahora.getMonth() + 1;
-    const anioActual = ahora.getFullYear() % 100;
-    
-    // Comprobar si la fecha es mayor o igual al mes actual
-    if (anioNum > anioActual) return true;
-    if (anioNum === anioActual && mesNum >= mesActual) return true;
-    
-    return false;
-  };
-
   const manejarPago = async () => {
-    // Validaciones básicas
-    if (!nombreTarjeta.trim()) {
-      Alert.alert('Error', 'Por favor ingrese el nombre en la tarjeta');
-      return;
+    if (Platform.OS === 'web') {
+      // Mostrar modal con formulario de pago en web
+      setModalVisible(true);
+    } else {
+      // Proceso simplificado para móvil
+      procesarPago();
+    }
+  };
+
+ const procesarPago = async () => {
+  setLoading(true);
+
+  try {
+    const response = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Si la respuesta no es 2xx, lanzar error con el mensaje del servidor
+      throw new Error(data.error || 'Error al procesar el pago');
     }
 
-    if (!numeroTarjeta || numeroTarjeta.length < 13) {
-      Alert.alert('Error', 'Número de tarjeta incompleto');
-      return;
+    // Mostrar confirmación
+    const mensajeExito = `Pago de ${reserva.precio} € procesado correctamente.\nReserva #${reserva.id}`;
+    
+    if (Platform.OS === 'web') {
+      alert(mensajeExito);
+      window.location.href = '/'; // Redirige a la página principal en web
+    } else {
+      Alert.alert(
+        'Pago exitoso', 
+        mensajeExito,
+        [{ text: 'OK', onPress: () => navigation.navigate('FormularioReserva') }]
+      );
     }
 
-    if (!validarTarjeta(numeroTarjeta)) {
-      Alert.alert('Error', 'Número de tarjeta inválido');
-      return;
+  } catch (error) {
+    console.error('Error en el pago:', error);
+    
+    const mensajeError = error.message || 'Error al conectar con el servidor';
+    
+    if (Platform.OS === 'web') {
+      alert(`Error: ${mensajeError}`);
+    } else {
+      Alert.alert('Error', mensajeError);
     }
-
-    if (!fechaExpiracion || fechaExpiracion.length !== 5) {
-      Alert.alert('Error', 'Fecha de expiración incompleta (MM/AA)');
-      return;
-    }
-
-    if (!validarFecha(fechaExpiracion)) {
-      Alert.alert('Error', 'La tarjeta está expirada o fecha inválida');
-      return;
-    }
-
-    if (!cvv || cvv.length < 3) {
-      Alert.alert('Error', 'CVV incompleto (3-4 dígitos)');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Usar el endpoint correcto para marcar como pagado
-     const respuesta = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
+  } finally {
+    setLoading(false);
+    setModalVisible(false);
   }
-});
+};
 
-      const data = await respuesta.json();
-
-      if (!respuesta.ok) {
-        throw new Error(data.error || 'Error al procesar el pago');
-      }
-
-      // Mostrar confirmación
-      const mensaje = `Pago de ${reserva.precio} € procesado correctamente.\n\n` +
-                     `Reserva #${reserva.id} - ${reserva.nombre_pista}\n` +
-                     `Estado: Pagado`;
-
-      if (Platform.OS === 'web') {
-        alert(mensaje);
-      } else {
-        Alert.alert('Pago exitoso', mensaje);
-      }
-
-      // Navegar de vuelta o a pantalla de confirmación
-      navigation.navigate('ConfirmacionPago', { 
-        reserva: {
-          ...reserva,
-          estado: 'pagado'
-        }
-      });
-
-    } catch (error) {
-      console.error('Error en el pago:', error);
-      Alert.alert('Error', error.message || 'Ocurrió un error al procesar el pago');
-    } finally {
-      setLoading(false);
-    }
+  const formatoFechaLegible = (fechaISO) => {
+    if (!fechaISO) return 'No especificado';
+    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
   };
 
   const formatoTarjeta = (numero) => {
@@ -149,10 +108,13 @@ export default function ResumenReserva({ route, navigation }) {
     return partes.join(' ');
   };
 
-  const formatoFechaLegible = (fechaISO) => {
-    if (!fechaISO) return 'No especificado';
-    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
+  const validarFormulario = () => {
+    return (
+      datosPago.nombre.trim() &&
+      datosPago.tarjeta.replace(/\D/g, '').length >= 13 &&
+      datosPago.expiracion.length === 5 &&
+      datosPago.cvv.length >= 3
+    );
   };
 
   return (
@@ -171,10 +133,6 @@ export default function ResumenReserva({ route, navigation }) {
           <Text style={styles.valor}>{reserva.nombre_pista || reserva.pista || 'No especificado'}</Text>
         </View>
         <View style={styles.dato}>
-          <Text style={styles.label}>Tipo:</Text>
-          <Text style={styles.valor}>{reserva.tipo_pista || 'No especificado'}</Text>
-        </View>
-        <View style={styles.dato}>
           <Text style={styles.label}>Fecha:</Text>
           <Text style={styles.valor}>{formatoFechaLegible(reserva.fecha)}</Text>
         </View>
@@ -183,8 +141,8 @@ export default function ResumenReserva({ route, navigation }) {
           <Text style={styles.valor}>{reserva.hora_inicio} - {reserva.hora_fin}</Text>
         </View>
         <View style={styles.dato}>
-          <Text style={styles.label}>Ludoteca:</Text>
-          <Text style={styles.valor}>{reserva.ludoteca ? 'Sí' : 'No'}</Text>
+          <Text style={styles.label}>Precio Total:</Text>
+          <Text style={styles.precio}>{reserva.precio} €</Text>
         </View>
         <View style={styles.dato}>
           <Text style={styles.label}>Estado:</Text>
@@ -192,61 +150,21 @@ export default function ResumenReserva({ route, navigation }) {
             {reserva.estado || 'Pendiente'}
           </Text>
         </View>
-        <View style={styles.dato}>
-          <Text style={styles.label}>Precio Total:</Text>
-          <Text style={styles.precio}>{reserva.precio} €</Text>
-        </View>
       </View>
 
       {reserva.estado !== 'pagado' && (
         <View style={styles.seccion}>
-          <Text style={styles.subtitulo}>Datos de Pago</Text>
+          <Text style={styles.subtitulo}>Procesar Pago</Text>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre en la tarjeta"
-            value={nombreTarjeta}
-            onChangeText={setNombreTarjeta}
-            autoCapitalize="words"
-            maxLength={50}
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Número de tarjeta (ej: 4242 4242 4242 4242)"
-            value={formatoTarjeta(numeroTarjeta)}
-            onChangeText={(text) => setNumeroTarjeta(text.replace(/\D/g, ''))}
-            keyboardType="numeric"
-            maxLength={19}
-          />
-          
-          <View style={styles.filaInputs}>
-            <TextInput
-              style={[styles.input, styles.inputMedio]}
-              placeholder="MM/AA"
-              value={fechaExpiracion}
-              onChangeText={(text) => {
-                const limpio = text.replace(/[^0-9]/g, '');
-                if (limpio.length > 2) {
-                  setFechaExpiracion(`${limpio.substring(0, 2)}/${limpio.substring(2, 4)}`);
-                } else {
-                  setFechaExpiracion(limpio);
-                }
-              }}
-              keyboardType="numeric"
-              maxLength={5}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.inputMedio]}
-              placeholder="CVV"
-              value={cvv}
-              onChangeText={(text) => setCvv(text.replace(/\D/g, '').slice(0, 4))}
-              keyboardType="numeric"
-              secureTextEntry={true}
-              maxLength={4}
-            />
-          </View>
+          {Platform.OS === 'web' ? (
+            <Text style={styles.infoPago}>
+              Haz clic en "Pagar Ahora" para completar el proceso de pago.
+            </Text>
+          ) : (
+            <Text style={styles.infoPago}>
+              Esta es una simulación de pago. Al hacer clic en "Pagar Ahora" se marcará la reserva como pagada.
+            </Text>
+          )}
           
           <TouchableOpacity 
             style={styles.botonPagar} 
@@ -260,6 +178,85 @@ export default function ResumenReserva({ route, navigation }) {
             )}
           </TouchableOpacity>
         </View>
+      )}
+
+      {/* Modal para formulario de pago en web */}
+      {Platform.OS === 'web' && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitulo}>Datos de Pago</Text>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre en la tarjeta"
+                value={datosPago.nombre}
+                onChangeText={(text) => setDatosPago({...datosPago, nombre: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Número de tarjeta"
+                value={formatoTarjeta(datosPago.tarjeta)}
+                onChangeText={(text) => setDatosPago({...datosPago, tarjeta: text.replace(/\D/g, '')})}
+                keyboardType="numeric"
+                maxLength={19}
+              />
+              
+              <View style={styles.filaInputs}>
+                <TextInput
+                  style={[styles.input, styles.inputMedio]}
+                  placeholder="MM/AA"
+                  value={datosPago.expiracion}
+                  onChangeText={(text) => {
+                    const limpio = text.replace(/[^0-9]/g, '');
+                    if (limpio.length > 2) {
+                      setDatosPago({...datosPago, expiracion: `${limpio.substring(0, 2)}/${limpio.substring(2, 4)}`});
+                    } else {
+                      setDatosPago({...datosPago, expiracion: limpio});
+                    }
+                  }}
+                  maxLength={5}
+                />
+                
+                <TextInput
+                  style={[styles.input, styles.inputMedio]}
+                  placeholder="CVV"
+                  value={datosPago.cvv}
+                  onChangeText={(text) => setDatosPago({...datosPago, cvv: text.replace(/\D/g, '').slice(0, 4)})}
+                  keyboardType="numeric"
+                  maxLength={4}
+                />
+              </View>
+              
+              <View style={styles.botonesModal}>
+                <TouchableOpacity 
+                  style={[styles.botonModal, styles.botonCancelar]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.textoBotonModal}>Cancelar</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.botonModal, styles.botonConfirmar, !validarFormulario() && styles.botonDisabled]}
+                  onPress={procesarPago}
+                  disabled={!validarFormulario() || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.textoBotonModal}>Confirmar Pago</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </ScrollView>
   );
@@ -323,21 +320,11 @@ const styles = StyleSheet.create({
     color: '#F39C12',
     fontWeight: '600',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#BDC3C7',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 15,
-    backgroundColor: '#FFF',
-  },
-  filaInputs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  inputMedio: {
-    width: '48%',
+  infoPago: {
+    color: '#7F8C8D',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   botonPagar: {
     backgroundColor: '#2ECC71',
@@ -361,5 +348,67 @@ const styles = StyleSheet.create({
     color: '#E74C3C',
     fontSize: 18,
     textAlign: 'center',
+  },
+  // Estilos para el modal (web)
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxWidth: 500,
+  },
+  modalTitulo: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#BDC3C7',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: '#FFF',
+  },
+  filaInputs: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  inputMedio: {
+    width: '48%',
+  },
+  botonesModal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  botonModal: {
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  botonCancelar: {
+    backgroundColor: '#E0E0E0',
+  },
+  botonConfirmar: {
+    backgroundColor: '#2ECC71',
+  },
+  botonDisabled: {
+    backgroundColor: '#A9DFBF',
+    opacity: 0.7,
+  },
+  textoBotonModal: {
+    color: '#FFF',
+    fontWeight: '600',
   },
 });

@@ -240,57 +240,70 @@ router.delete('/:id', (req, res) => {
     });
   });
 });
-
 router.put('/:id/pagar', async (req, res) => {
   const db = req.app.get('conexion');
   const { id } = req.params;
 
-  // 1. Validación robusta del ID
-  if (!id || isNaN(Number(id))) {
-    return res.status(400).json({
+  // Validación más robusta
+  if (!id || isNaN(parseInt(id))) {
+    return res.status(400).json({ 
       success: false,
-      error: 'ID de reserva inválido'
+      error: 'ID de reserva inválido' 
     });
   }
 
+  const reservaId = parseInt(id);
+
   try {
-    // 2. Verificar existencia de la reserva
+    // Iniciar transacción para mayor seguridad
+    await db.promise().query('START TRANSACTION');
+
+    // 1. Verificar que la reserva existe y está pendiente
     const [reserva] = await db.promise().query(
-      `SELECT id, estado FROM reservas WHERE id = ?`, 
-      [id]
+      `SELECT id, estado FROM reservas WHERE id = ? FOR UPDATE`,
+      [reservaId]
     );
 
-    if (reserva.length === 0) {
+    if (!reserva || reserva.length === 0) {
+      await db.promise().query('ROLLBACK');
       return res.status(404).json({
         success: false,
         error: 'Reserva no encontrada'
       });
     }
 
-    // 3. Verificar que no esté ya pagada
-    if (reserva[0].estado === 'pagado') {
+    if (reserva[0].estado !== 'pendiente') {
+      await db.promise().query('ROLLBACK');
       return res.status(400).json({
         success: false,
-        error: 'La reserva ya está pagada'
+        error: `La reserva ya está ${reserva[0].estado}`
       });
     }
 
-    // 4. Actualizar estado
+    // 2. Actualizar el estado a pagado
     const [result] = await db.promise().query(
-      `UPDATE reservas SET estado = 'pagado' WHERE id = ?`,
-      [id]
+      `UPDATE reservas SET estado = 'pagado', fecha_pago = NOW() WHERE id = ?`,
+      [reservaId]
     );
 
-    // 5. Obtener datos actualizados
+    if (result.affectedRows === 0) {
+      await db.promise().query('ROLLBACK');
+      throw new Error('No se pudo actualizar la reserva');
+    }
+
+    // 3. Obtener los datos actualizados para la respuesta
     const [reservaActualizada] = await db.promise().query(
-      `SELECT r.*, p.nombre as nombre_pista 
+      `SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
        FROM reservas r
        JOIN pistas p ON r.pista = p.id
        WHERE r.id = ?`,
-      [id]
+      [reservaId]
     );
 
-    // 6. Respuesta exitosa
+    // Confirmar la transacción
+    await db.promise().query('COMMIT');
+
+    // Respuesta exitosa
     res.json({
       success: true,
       data: reservaActualizada[0],
@@ -298,13 +311,13 @@ router.put('/:id/pagar', async (req, res) => {
     });
 
   } catch (error) {
+    await db.promise().query('ROLLBACK');
     console.error('Error en el proceso de pago:', error);
     res.status(500).json({
       success: false,
-      error: 'Error interno del servidor'
+      error: error.message || 'Error al procesar el pago'
     });
   }
 });
-
 
 module.exports = router;

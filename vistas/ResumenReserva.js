@@ -46,7 +46,6 @@ export default function ResumenReserva({ route, navigation }) {
   };
 
 const procesarPago = async () => {
-  // Verificación adicional del ID
   if (!reserva?.id) {
     Alert.alert('Error', 'No se encontró el ID de la reserva');
     return;
@@ -55,7 +54,7 @@ const procesarPago = async () => {
   setLoading(true);
 
   try {
-    console.log('Intentando pagar reserva ID:', reserva.id); // Para depuración
+    console.log('Enviando pago para reserva ID:', reserva.id);
     
     const response = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
       method: 'PUT',
@@ -65,46 +64,66 @@ const procesarPago = async () => {
       }
     });
 
-    // Manejo mejorado de errores
+    // Manejo detallado de errores HTTP
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error del servidor:', errorText);
-      throw new Error(errorText || 'Error al procesar el pago');
-    }
-
-    const data = await response.json();
-    console.log('Respuesta del pago:', data); // Para depuración
-
-    // Mostrar confirmación
-    const mensajeExito = `Pago de ${reserva.precio} € procesado correctamente.\nReserva #${reserva.id}`;
-    
-    if (Platform.OS === 'web') {
-      alert(mensajeExito);
-      window.location.href = '/'; // Redirige a la página principal en web
-    } else {
-      Alert.alert(
-        'Pago exitoso', 
-        mensajeExito,
-        [{ text: 'OK', onPress: () => navigation.navigate('FormularioReserva') }]
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      
+      throw new Error(
+        errorData.error || 
+        `Error ${response.status}: ${response.statusText}` ||
+        'Error al procesar el pago'
       );
     }
 
+    const data = await response.json();
+    console.log('Pago exitoso:', data);
+
+    // Actualizar el estado localmente
+    const reservaActualizada = {
+      ...reserva,
+      estado: 'pagado',
+      ...data.data
+    };
+
+    const mensajeExito = `Pago de ${reserva.precio} € procesado correctamente.\nReserva #${reserva.id}`;
+
+if (Platform.OS === 'web') {
+  alert(mensajeExito);
+  window.location.href = '/Reservas'; // o usa useNavigate si estás con React Router
+} else {
+  Alert.alert(
+    'Pago exitoso',
+    mensajeExito,
+    [{
+      text: 'OK',
+      onPress: () => navigation.navigate('Reservas', {
+        reserva: reservaActualizada
+      })
+    }]
+  );
+}
+
+
   } catch (error) {
-    console.error('Error en el pago:', error);
+    console.error('Error completo:', {
+      message: error.message,
+      stack: error.stack
+    });
     
-    const mensajeError = error.message || 'Error al conectar con el servidor';
-    
-    if (Platform.OS === 'web') {
-      alert(`Error: ${mensajeError}`);
-    } else {
-      Alert.alert('Error', mensajeError);
-    }
+    Alert.alert(
+      'Error en el pago', 
+      error.message || 'No se pudo completar el pago. Por favor intente nuevamente.'
+    );
   } finally {
     setLoading(false);
     setModalVisible(false);
   }
 };
-
   const formatoFechaLegible = (fechaISO) => {
     if (!fechaISO) return 'No especificado';
     const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };

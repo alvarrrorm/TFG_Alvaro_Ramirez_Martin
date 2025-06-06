@@ -77,6 +77,7 @@ export default function App() {
               title: 'Mis Reservas', 
             }}
           />
+         
         </Stack.Navigator>
       </NavigationContainer>
     </UserProvider>

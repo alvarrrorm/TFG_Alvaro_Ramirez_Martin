@@ -94,63 +94,71 @@ useEffect(() => {
     ? parseInt(form.horaFin.split(':')[0], 10) - parseInt(form.horaInicio.split(':')[0], 10)
     : 0;
 
-  const handleSubmit = async () => {
-    if (!form.pista || !form.fecha) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
+ const handleSubmit = async () => {
+  if (!form.pista || !form.fecha) {
+    Alert.alert('Error', 'Por favor completa todos los campos');
+    return;
+  }
+  if (form.horaFin <= form.horaInicio) {
+    Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await fetch('http://localhost:3001/reservas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: form.pista,
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Error al crear la reserva');
     }
-    if (form.horaFin <= form.horaInicio) {
-      Alert.alert('Error', 'La hora de fin debe ser mayor que la de inicio');
-      return;
+
+    const data = await res.json();
+
+    // Asegúrate de que data contiene el ID de la reserva creada
+    if (!data.data || !data.data.id) {
+      throw new Error('No se recibió el ID de la reserva');
     }
 
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:3001/reservas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dni_usuario: dni,
-          nombre_usuario: nombre,
-          pista: form.pista,
-          fecha: form.fecha,
-          hora_inicio: form.horaInicio,
-          hora_fin: form.horaFin,
-          ludoteca: form.ludoteca,
-          estado: 'pendiente',
-          precio: precioTotal,
-        }),
-      });
+    // Navegar a ResumenReserva con todos los datos necesarios
+    navigation.navigate('ResumenReserva', {
+      reserva: {
+        id: data.data.id, // Asegúrate de que esto está llegando
+        dni_usuario: dni,
+        nombre_usuario: nombre,
+        pista: form.pista,
+        nombre_pista: pistaSeleccionada?.nombre || '',
+        fecha: form.fecha,
+        hora_inicio: form.horaInicio,
+        hora_fin: form.horaFin,
+        ludoteca: form.ludoteca,
+        estado: 'pendiente',
+        precio: precioTotal,
+        tipo_pista: pistaSeleccionada?.tipo || ''
+      }
+    });
 
-      if (!res.ok) throw new Error('Error al crear la reserva');
-      const data = await res.json();
-
-      Alert.alert('Éxito', 'Reserva creada correctamente');
-
-      navigation.navigate('ResumenReserva', {
-        reserva: {
-          id: data.id,
-          id_pista: pistaSeleccionada?.id || '',
-          dni_usuario: dni,
-          nombre_usuario: nombre,
-          pista: pistaSeleccionada?.nombre || '',
-          fecha: form.fecha,
-          hora_inicio: form.horaInicio,
-          hora_fin: form.horaFin,
-          ludoteca: form.ludoteca,
-          estado: 'pendiente',
-          precio: precioTotal,
-        }
-      });
-
-    } catch (error) {
-      console.error('Error creating reservation:', error);
-      Alert.alert('Error', error.message || 'Ocurrió un error al crear la reserva');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  } catch (error) {
+    console.error('Error creating reservation:', error);
+    Alert.alert('Error', error.message || 'Ocurrió un error al crear la reserva');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Nombre</Text>

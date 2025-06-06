@@ -114,34 +114,35 @@ router.post('/', (req, res) => {
               });
             }
 
-            // Devolver reserva creada con datos de pista
-            const selectSQL = `
-              SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
-              FROM reservas r
-              LEFT JOIN pistas p ON r.pista = p.id
-              WHERE r.id = ?
-            `;
+          // En tu router.post('/') en reservas.js
+// Después de crear la reserva:
+const selectSQL = `
+  SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
+  FROM reservas r
+  LEFT JOIN pistas p ON r.pista = p.id
+  WHERE r.id = ?
+`;
 
-            db.query(selectSQL, [result.insertId], (err, rows) => {
-              if (err) {
-                console.error('Error al obtener reserva creada:', err);
-                return res.status(500).json({ 
-                  success: false,
-                  error: 'Error al obtener reserva creada' 
-                });
-              }
-              if (rows.length === 0) {
-                return res.status(404).json({ 
-                  success: false,
-                  error: 'Reserva no encontrada después de crearla' 
-                });
-              }
-              
-              res.status(201).json({
-                success: true,
-                data: rows[0]
-              });
-            });
+db.query(selectSQL, [result.insertId], (err, rows) => {
+  if (err) {
+    console.error('Error al obtener reserva creada:', err);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener reserva creada' 
+    });
+  }
+  if (rows.length === 0) {
+    return res.status(404).json({ 
+      success: false,
+      error: 'Reserva no encontrada después de crearla' 
+    });
+  }
+  
+  res.status(201).json({
+    success: true,
+    data: rows[0] // Esto incluye el ID y todos los datos de la reserva
+  });
+});
           }
         );
       });

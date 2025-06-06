@@ -45,23 +45,35 @@ export default function ResumenReserva({ route, navigation }) {
     }
   };
 
- const procesarPago = async () => {
+const procesarPago = async () => {
+  // Verificación adicional del ID
+  if (!reserva?.id) {
+    Alert.alert('Error', 'No se encontró el ID de la reserva');
+    return;
+  }
+
   setLoading(true);
 
   try {
+    console.log('Intentando pagar reserva ID:', reserva.id); // Para depuración
+    
     const response = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
-    const data = await response.json();
-
+    // Manejo mejorado de errores
     if (!response.ok) {
-      // Si la respuesta no es 2xx, lanzar error con el mensaje del servidor
-      throw new Error(data.error || 'Error al procesar el pago');
+      const errorText = await response.text();
+      console.error('Error del servidor:', errorText);
+      throw new Error(errorText || 'Error al procesar el pago');
     }
+
+    const data = await response.json();
+    console.log('Respuesta del pago:', data); // Para depuración
 
     // Mostrar confirmación
     const mensajeExito = `Pago de ${reserva.precio} € procesado correctamente.\nReserva #${reserva.id}`;
@@ -128,6 +140,10 @@ export default function ResumenReserva({ route, navigation }) {
           <Text style={styles.label}>Usuario:</Text>
           <Text style={styles.valor}>{reserva.nombre_usuario || 'Desconocido'}</Text>
         </View>
+          <View style={styles.dato}>
+    <Text style={styles.label}>ID Reserva:</Text>
+    <Text style={styles.valor}>{reserva.id || 'No especificado'}</Text>
+  </View>
         <View style={styles.dato}>
           <Text style={styles.label}>Pista:</Text>
           <Text style={styles.valor}>{reserva.nombre_pista || reserva.pista || 'No especificado'}</Text>

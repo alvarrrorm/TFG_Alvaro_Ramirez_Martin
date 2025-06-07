@@ -319,5 +319,91 @@ router.put('/:id/pagar', async (req, res) => {
     });
   }
 });
+// Listar reservas filtradas por DNI del usuario
+router.get('/', (req, res) => {
+  const db = req.app.get('conexion');
+  const { dni_usuario } = req.query;
 
+  // Validar que se proporcionó un DNI
+  if (!dni_usuario) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Se requiere el DNI del usuario' 
+    });
+  }
+
+  const sql = `
+    SELECT r.*, p.nombre AS nombre_pista, p.tipo AS tipo_pista
+    FROM reservas r
+    LEFT JOIN pistas p ON r.pista = p.id
+    WHERE r.dni_usuario = ?
+    ORDER BY r.fecha DESC, r.hora_inicio DESC
+  `;
+
+  db.query(sql, [dni_usuario], (err, results) => {
+    if (err) {
+      console.error('Error al obtener reservas:', err);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Error al obtener reservas' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: results
+    });
+  });
+});
+
+
+// Eliminar una reserva
+router.delete('/:id', (req, res) => {
+  const db = req.app.get('conexion');
+  const { id } = req.params;
+
+  // Primero verificar que la reserva pertenece al usuario
+  const verificarSQL = 'SELECT dni_usuario FROM reservas WHERE id = ?';
+  
+  db.query(verificarSQL, [id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Error al verificar reserva' 
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Reserva no encontrada' 
+      });
+    }
+
+    // Opcional: Verificar que el usuario es el dueño de la reserva
+    // if (results[0].dni_usuario !== req.user.dni) {
+    //   return res.status(403).json({ 
+    //     success: false,
+    //     error: 'No tienes permiso para cancelar esta reserva' 
+    //   });
+    // }
+
+    // Eliminar la reserva
+    const deleteSQL = 'DELETE FROM reservas WHERE id = ?';
+    
+    db.query(deleteSQL, [id], (err, result) => {
+      if (err) {
+        return res.status(500).json({ 
+          success: false,
+          error: 'Error al eliminar reserva' 
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Reserva cancelada correctamente'
+      });
+    });
+  });
+});
 module.exports = router;

@@ -37,7 +37,6 @@ app.use(cors({
   ,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
 }));
 
 // Middlewares para parsear JSON y datos urlencoded

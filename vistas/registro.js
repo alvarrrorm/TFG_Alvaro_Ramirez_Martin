@@ -28,52 +28,58 @@ export default function Register({ navigation }) {
   const [aceptoPoliticas, setAceptoPoliticas] = useState(false);
   const [telefono, setTelefono] = useState('');
 
-  const handleRegister = async () => {
-    Keyboard.dismiss();
+ const handleRegister = () => {
+  Keyboard.dismiss();
 
-    const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
-      setMensajeError('Por favor, completa todos los campos');
-      return;
-    }
+  if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
+    setMensajeError('Por favor, completa todos los campos');
+    return;
+  }
 
-    if (!correoValido.test(correo)) {
-      setMensajeError('Correo electrónico no válido');
-      return;
-    }
+  if (!correoValido.test(correo)) {
+    setMensajeError('Correo electrónico no válido');
+    return;
+  }
 
-    if (pass !== pass_2) {
-      setMensajeError('Las contraseñas no coinciden');
-      return;
-    }
+  if (pass !== pass_2) {
+    setMensajeError('Las contraseñas no coinciden');
+    return;
+  }
 
-    if (!aceptoPoliticas) {
-      setMensajeError('Debes aceptar las políticas de privacidad');
-      return;
-    }
+  if (!aceptoPoliticas) {
+    setMensajeError('Debes aceptar las políticas de privacidad');
+    return;
+  }
 
-    try {
-      const response = await fetch('https://tfgalvaroramirezmartin-production.up.railway.app/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMensajeError('');
-        Alert.alert('Éxito', 'Usuario registrado con éxito');
-        navigation.navigate('Login');
-      } else {
-        setMensajeError(data.error || 'No se pudo registrar el usuario');
+  fetch('https://tfgalvaroramirezmartin-production.up.railway.app/registro', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })
+  })
+    .then(res => res.text())
+    .then(text => {
+      console.log(text);
+      try {
+        const data = JSON.parse(text);
+        if (data.error) {
+          setMensajeError(data.error);
+        } else {
+          setMensajeError('');
+          Alert.alert('Éxito', 'Usuario registrado con éxito');
+          navigation.navigate('Login');
+        }
+      } catch {
+        setMensajeError('Respuesta inesperada del servidor');
       }
-    } catch (error) {
+    })
+    .catch(error => {
       console.error(error);
       setMensajeError('No se pudo conectar con el servidor');
-    }
-  };
+    });
+};
+
 
   const navigateToPoliticas = () => {
     Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
@@ -357,23 +363,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    marginHorizontal: 8,
-    color: '#6B7280',
+    marginHorizontal: 12,
+    color: '#9CA3AF',
     fontWeight: '600',
-    fontSize: 16,
   },
   secondaryButton: {
-    alignItems: 'center',
     paddingVertical: 12,
+    alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#4F46E5',
-    fontWeight: '700',
     fontSize: 16,
+    color: '#4F46E5',
+    fontWeight: '600',
   },
   contentContainerStyle: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 20,
   },
 });

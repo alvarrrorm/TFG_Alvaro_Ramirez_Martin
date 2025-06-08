@@ -94,7 +94,9 @@ const procesarPago = async () => {
 
 if (Platform.OS === 'web') {
   alert(mensajeExito);
-  window.location.href = '/Reservas'; // o usa useNavigate si estás con React Router
+  navigation.navigate('Reservas', {
+    reserva: reservaActualizada
+  });
 } else {
   Alert.alert(
     'Pago exitoso',
@@ -107,6 +109,7 @@ if (Platform.OS === 'web') {
     }]
   );
 }
+
 
 
   } catch (error) {

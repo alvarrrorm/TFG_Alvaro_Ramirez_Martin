@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Keyboard,
   Platform,
-  FlatList,
+  ScrollView,
+  KeyboardAvoidingView,
   Linking,
   Dimensions,
 } from 'react-native';
@@ -27,7 +28,6 @@ export default function Register({ navigation }) {
   const [aceptoPoliticas, setAceptoPoliticas] = useState(false);
   const [telefono, setTelefono] = useState('');
 
-  // Manejar el registro del usuario
   const handleRegister = async () => {
     Keyboard.dismiss();
 
@@ -54,7 +54,7 @@ export default function Register({ navigation }) {
     }
 
     try {
-const response = await fetch('https://tfgalvaroramirezmartin-production.up.railway.app/registro', {
+      const response = await fetch('https://tfgalvaroramirezmartin-production.up.railway.app/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })
@@ -75,163 +75,163 @@ const response = await fetch('https://tfgalvaroramirezmartin-production.up.railw
     }
   };
 
-  // Navegar a las políticas de privacidad
   const navigateToPoliticas = () => {
     Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
   };
 
   return (
-    <View style={styles.overlay}>
-      <FlatList
-        data={[]}
+    <KeyboardAvoidingView
+      style={styles.overlay}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={styles.contentContainerStyle}
         keyboardShouldPersistTaps="handled"
-        keyExtractor={(item, index) => index.toString()}
-        ListHeaderComponent={
-          <View style={styles.container}>
-            <View style={styles.formContainer}>
-              <Text style={styles.title}>Crear cuenta</Text>
-              <Text style={styles.subtitle}>Únete a nuestra comunidad deportiva</Text>
+        showsVerticalScrollIndicator={false}
+        style={Platform.OS === 'web' ? { maxHeight: screenHeight } : {}}
+      >
+        <View style={styles.container}>
+          <View style={styles.formContainer}>
+            <Text style={styles.title}>Crear cuenta</Text>
+            <Text style={styles.subtitle}>Únete a nuestra comunidad deportiva</Text>
 
-              {mensajeError ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{mensajeError}</Text>
-                </View>
-              ) : null}
+            {mensajeError ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{mensajeError}</Text>
+              </View>
+            ) : null}
 
-              <TextInput
-                placeholder="Nombre completo"
-                placeholderTextColor="#9CA3AF"
-                style={styles.input}
-                value={nombre}
-                onChangeText={(text) => { setNombre(text); setMensajeError(''); }}
-                returnKeyType="next"
-              />
-              <TextInput
-                placeholder="Correo electrónico"
-                placeholderTextColor="#9CA3AF"
-                style={styles.input}
-                value={correo}
-                onChangeText={(text) => {
-                  setCorreo(text);
-                  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                  if (text === '' || regex.test(text)) {
-                    setMensajeError('');
-                  } else {
-                    setMensajeError('Correo electrónico no válido');
-                  }
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                returnKeyType="next"
-              />
-
-              <TextInput
-                placeholder="Nombre de usuario"
-                placeholderTextColor="#9CA3AF"
-                style={styles.input}
-                value={usuario}
-                onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}
-                autoCapitalize="none"
-                returnKeyType="next"
-              />
-              <TextInput
-                placeholder="DNI (Con Letra)"
-                placeholderTextColor="#9CA3AF"
-                style={styles.input}
-                value={dni}
-                onChangeText={(text) => { setDni(text); setMensajeError(''); }}
-                returnKeyType="next"
-              />
-              <TextInput
-                placeholder="Número de Teléfono"
-                placeholderTextColor="#9CA3AF"
-                style={styles.input}
-                value={telefono}
-                onChangeText={(text) => {
-                  // Solo guarda números
-                  const soloNumeros = text.replace(/[^0-9]/g, '');
-                  setTelefono(soloNumeros);
+            <TextInput
+              placeholder="Nombre completo"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              value={nombre}
+              onChangeText={(text) => { setNombre(text); setMensajeError(''); }}
+              returnKeyType="next"
+            />
+            <TextInput
+              placeholder="Correo electrónico"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              value={correo}
+              onChangeText={(text) => {
+                setCorreo(text);
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (text === '' || regex.test(text)) {
                   setMensajeError('');
-                }}
-                keyboardType="numeric"
-                maxLength={15}
-                returnKeyType="next"
-              />
+                } else {
+                  setMensajeError('Correo electrónico no válido');
+                }
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
 
+            <TextInput
+              placeholder="Nombre de usuario"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              value={usuario}
+              onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
+            <TextInput
+              placeholder="DNI (Con Letra)"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              value={dni}
+              onChangeText={(text) => { setDni(text); setMensajeError(''); }}
+              returnKeyType="next"
+            />
+            <TextInput
+              placeholder="Número de Teléfono"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              value={telefono}
+              onChangeText={(text) => {
+                const soloNumeros = text.replace(/[^0-9]/g, '');
+                setTelefono(soloNumeros);
+                setMensajeError('');
+              }}
+              keyboardType="numeric"
+              maxLength={15}
+              returnKeyType="next"
+            />
 
-              <TextInput
-                placeholder="Contraseña"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                style={styles.input}
-                value={pass}
-                onChangeText={(text) => { setPass(text); setMensajeError(''); }}
-                returnKeyType="next"
-              />
-              <TextInput
-                placeholder="Repetir contraseña"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                style={styles.input}
-                value={pass_2}
-                onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
-                returnKeyType="next"
-              />
-              <TextInput
-                placeholder="Clave de administrador (opcional)"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                style={styles.input}
-                value={claveAdmin}
-                onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
-                returnKeyType="done"
-                onSubmitEditing={Keyboard.dismiss}
-              />
+            <TextInput
+              placeholder="Contraseña"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              style={styles.input}
+              value={pass}
+              onChangeText={(text) => { setPass(text); setMensajeError(''); }}
+              returnKeyType="next"
+            />
+            <TextInput
+              placeholder="Repetir contraseña"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              style={styles.input}
+              value={pass_2}
+              onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
+              returnKeyType="next"
+            />
+            <TextInput
+              placeholder="Clave de administrador (opcional)"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              style={styles.input}
+              value={claveAdmin}
+              onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
 
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  style={styles.checkbox}
-                  onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
-                >
-                  <View style={[styles.checkboxIcon, aceptoPoliticas && styles.checkboxChecked]}>
-                    {aceptoPoliticas && <Text style={styles.checkboxCheckmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxText}>
-                    Acepto las{' '}
-                    <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
-                      políticas de privacidad
-                    </Text>
+            <View style={styles.checkboxContainer}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkboxIcon, aceptoPoliticas && styles.checkboxChecked]}>
+                  {aceptoPoliticas && <Text style={styles.checkboxCheckmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxText}>
+                  Acepto las{' '}
+                  <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
+                    políticas de privacidad
                   </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleRegister}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.buttonText}>Registrarse</Text>
-              </TouchableOpacity>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>o</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => navigation.navigate('Login')}
-              >
-                <Text style={styles.secondaryButtonText}>¿Ya tienes cuenta? Inicia sesión</Text>
+                </Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleRegister}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.buttonText}>Registrarse</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>o</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.secondaryButtonText}>¿Ya tienes cuenta? Inicia sesión</Text>
+            </TouchableOpacity>
           </View>
-        }
-        contentContainerStyle={styles.contentContainerStyle}
-        style={Platform.OS === 'web' ? { height: screenHeight } : {}}
-      />
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -327,30 +327,29 @@ const styles = StyleSheet.create({
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
     backgroundColor: '#4F46E5',
     borderColor: '#4F46E5',
   },
   checkboxCheckmark: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
   },
   checkboxText: {
+    flex: 1,
     fontSize: 15,
-    color: '#4B5563',
+    color: '#374151',
   },
   politicasLink: {
     color: '#4F46E5',
-    fontWeight: '600',
     textDecorationLine: 'underline',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 15,
   },
   dividerLine: {
     flex: 1,
@@ -358,28 +357,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   dividerText: {
+    marginHorizontal: 8,
     color: '#6B7280',
-    paddingHorizontal: 10,
-    fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    fontSize: 16,
   },
   secondaryButton: {
-    borderWidth: 2,
-    borderColor: '#4F46E5',
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '100%',
     alignItems: 'center',
+    paddingVertical: 12,
   },
   secondaryButtonText: {
     color: '#4F46E5',
-    fontSize: 16,
     fontWeight: '700',
+    fontSize: 16,
   },
   contentContainerStyle: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 10,
+    paddingVertical: 20,
   },
 });

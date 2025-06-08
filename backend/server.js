@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -10,7 +10,7 @@ const conexion = mysql.createConnection({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'qwerty',
   database: process.env.DB_NAME || 'gestion_polideportivo',
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
 });
 
 // Conectar a la base de datos
@@ -28,16 +28,16 @@ const app = express();
 // Guardar la conexión en app para acceder desde rutas
 app.set('conexion', conexion);
 
-// Middleware CORS
-app.use(cors({
-  origin: 
-   
-   '*'
+// Middleware CORS - debe ir antes que las rutas
+app.use(
+  cors({
+    origin: '*', // Para producción es mejor limitar a orígenes confiables
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-  ,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Manejar peticiones OPTIONS para todas las rutas (preflight)
 app.options('*', cors());
 
 // Middlewares para parsear JSON y datos urlencoded
@@ -72,12 +72,12 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-const PORT = process.env.PORT || 3001; // Importante para Railway
+const PORT = process.env.PORT || 3001; // Railway usa la variable PORT
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
 
-// Cerrar conexión al terminar
+// Cerrar conexión al terminar el proceso
 process.on('SIGINT', () => {
   conexion.end();
   process.exit();

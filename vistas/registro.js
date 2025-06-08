@@ -8,8 +8,7 @@ import {
   TouchableOpacity,
   Keyboard,
   Platform,
-  ScrollView,
-  KeyboardAvoidingView,
+  FlatList,
   Linking,
   Dimensions,
 } from 'react-native';
@@ -21,19 +20,20 @@ export default function Register({ navigation }) {
   const [correo, setCorreo] = useState('');
   const [usuario, setUsuario] = useState('');
   const [dni, setDni] = useState('');
-  const [telefono, setTelefono] = useState('');
   const [pass, setPass] = useState('');
   const [pass_2, setPass2] = useState('');
   const [claveAdmin, setClaveAdmin] = useState('');
   const [mensajeError, setMensajeError] = useState('');
   const [aceptoPoliticas, setAceptoPoliticas] = useState(false);
+  const [telefono, setTelefono] = useState('');
 
-  const handleRegister = () => {
+  // Manejar el registro del usuario
+  const handleRegister = async () => {
     Keyboard.dismiss();
 
     const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!nombre || !correo || !usuario || !dni || !telefono || !pass || !pass_2) {
+    if (!nombre || !correo || !usuario || !dni || !pass || !pass_2) {
       setMensajeError('Por favor, completa todos los campos');
       return;
     }
@@ -53,226 +53,185 @@ export default function Register({ navigation }) {
       return;
     }
 
-    fetch('https://tfgalvaroramirezmartin-production.up.railway.app/registro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre,
-        correo,
-        usuario,
-        dni,
-        telefono,
-        pass,
-        pass_2,
-        clave_admin: claveAdmin,
-      }),
-    })
-      .then(res => res.text())
-      .then(text => {
-        try {
-          const data = JSON.parse(text);
-          if (data.error) {
-            setMensajeError(data.error);
-          } else {
-            setMensajeError('');
-            Alert.alert('Éxito', 'Usuario registrado con éxito');
-            navigation.navigate('Login');
-          }
-        } catch {
-          setMensajeError('Respuesta inesperada del servidor');
-        }
-      })
-      .catch(error => {
-        console.error(error);
-        setMensajeError('No se pudo conectar con el servidor');
+    try {
+      const response = await fetch('http://localhost:3001/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMensajeError('');
+        Alert.alert('Éxito', 'Usuario registrado con éxito');
+        navigation.navigate('Login');
+      } else {
+        setMensajeError(data.error || 'No se pudo registrar el usuario');
+      }
+    } catch (error) {
+      console.error(error);
+      setMensajeError('No se pudo conectar con el servidor');
+    }
   };
 
+  // Navegar a las políticas de privacidad
   const navigateToPoliticas = () => {
-    Linking.openURL(
-      'https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing'
-    );
+    Linking.openURL('https://drive.google.com/file/d/1wJ_KyccZQE6VPjGLy8ThGCvXFj2OrhoC/view?usp=sharing');
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.overlay}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-    >
-      <ScrollView
-        contentContainerStyle={styles.contentContainerStyle}
+    <View style={styles.overlay}>
+      <FlatList
+        data={[]}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={Platform.OS === 'web' ? { maxHeight: screenHeight } : {}}
-      >
-        <View style={styles.container}>
-          <View style={styles.formContainer}>
-            <Text style={styles.title}>Crear cuenta</Text>
-            <Text style={styles.subtitle}>Únete a nuestra comunidad deportiva</Text>
+        keyExtractor={(item, index) => index.toString()}
+        ListHeaderComponent={
+          <View style={styles.container}>
+            <View style={styles.formContainer}>
+              <Text style={styles.title}>Crear cuenta</Text>
+              <Text style={styles.subtitle}>Únete a nuestra comunidad deportiva</Text>
 
-            {mensajeError ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{mensajeError}</Text>
-              </View>
-            ) : null}
-
-            <TextInput
-              placeholder="Nombre completo"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              value={nombre}
-              onChangeText={text => {
-                setNombre(text);
-                setMensajeError('');
-              }}
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Correo electrónico"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              value={correo}
-              onChangeText={text => {
-                setCorreo(text);
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (text === '' || regex.test(text)) {
-                  setMensajeError('');
-                } else {
-                  setMensajeError('Correo electrónico no válido');
-                }
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Nombre de usuario"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              value={usuario}
-              onChangeText={text => {
-                setUsuario(text);
-                setMensajeError('');
-              }}
-              autoCapitalize="none"
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="DNI (Con Letra)"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              value={dni}
-              onChangeText={text => {
-                setDni(text.toUpperCase());
-                setMensajeError('');
-              }}
-              autoCapitalize="characters"
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Número de Teléfono"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              value={telefono}
-              onChangeText={text => {
-                const soloNumeros = text.replace(/[^0-9]/g, '');
-                setTelefono(soloNumeros);
-                setMensajeError('');
-              }}
-              keyboardType="numeric"
-              maxLength={15}
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Contraseña"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              style={styles.input}
-              value={pass}
-              onChangeText={text => {
-                setPass(text);
-                setMensajeError('');
-              }}
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Repetir contraseña"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              style={styles.input}
-              value={pass_2}
-              onChangeText={text => {
-                setPass2(text);
-                setMensajeError('');
-              }}
-              returnKeyType="next"
-            />
-            <TextInput
-              placeholder="Clave de administrador (opcional)"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              style={styles.input}
-              value={claveAdmin}
-              onChangeText={text => {
-                setClaveAdmin(text);
-                setMensajeError('');
-              }}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-            />
-
-            <View style={styles.checkboxContainer}>
-              <TouchableOpacity
-                style={styles.checkbox}
-                onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.checkboxIcon,
-                    aceptoPoliticas && styles.checkboxChecked,
-                  ]}
-                >
-                  {aceptoPoliticas && (
-                    <Text style={styles.checkboxCheckmark}>✓</Text>
-                  )}
+              {mensajeError ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{mensajeError}</Text>
                 </View>
-                <Text style={styles.checkboxText}>
-                  Acepto las{' '}
-                  <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
-                    políticas de privacidad
+              ) : null}
+
+              <TextInput
+                placeholder="Nombre completo"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={nombre}
+                onChangeText={(text) => { setNombre(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Correo electrónico"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={correo}
+                onChangeText={(text) => {
+                  setCorreo(text);
+                  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (text === '' || regex.test(text)) {
+                    setMensajeError('');
+                  } else {
+                    setMensajeError('Correo electrónico no válido');
+                  }
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+
+              <TextInput
+                placeholder="Nombre de usuario"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={usuario}
+                onChangeText={(text) => { setUsuario(text); setMensajeError(''); }}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="DNI (Con Letra)"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={dni}
+                onChangeText={(text) => { setDni(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Número de Teléfono"
+                placeholderTextColor="#9CA3AF"
+                style={styles.input}
+                value={telefono}
+                onChangeText={(text) => {
+                  // Solo guarda números
+                  const soloNumeros = text.replace(/[^0-9]/g, '');
+                  setTelefono(soloNumeros);
+                  setMensajeError('');
+                }}
+                keyboardType="numeric"
+                maxLength={15}
+                returnKeyType="next"
+              />
+
+
+              <TextInput
+                placeholder="Contraseña"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={pass}
+                onChangeText={(text) => { setPass(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Repetir contraseña"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={pass_2}
+                onChangeText={(text) => { setPass2(text); setMensajeError(''); }}
+                returnKeyType="next"
+              />
+              <TextInput
+                placeholder="Clave de administrador (opcional)"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                style={styles.input}
+                value={claveAdmin}
+                onChangeText={(text) => { setClaveAdmin(text); setMensajeError(''); }}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity
+                  style={styles.checkbox}
+                  onPress={() => setAceptoPoliticas(!aceptoPoliticas)}
+                >
+                  <View style={[styles.checkboxIcon, aceptoPoliticas && styles.checkboxChecked]}>
+                    {aceptoPoliticas && <Text style={styles.checkboxCheckmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxText}>
+                    Acepto las{' '}
+                    <Text style={styles.politicasLink} onPress={navigateToPoliticas}>
+                      políticas de privacidad
+                    </Text>
                   </Text>
-                </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleRegister}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Registrarse</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>o</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.secondaryButtonText}>¿Ya tienes cuenta? Inicia sesión</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleRegister}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.buttonText}>Registrarse</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>o</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.secondaryButtonText}>
-                ¿Ya tienes cuenta? Inicia sesión
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        }
+        contentContainerStyle={styles.contentContainerStyle}
+        style={Platform.OS === 'web' ? { height: screenHeight } : {}}
+      />
+    </View>
   );
 }
 
@@ -303,36 +262,57 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Platform.OS === 'web' ? 32 : 26,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#1F2937',
     marginBottom: 5,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: Platform.OS === 'web' ? 16 : 14,
-    color: '#64748B',
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 25,
+    textAlign: 'center',
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
-    fontSize: Platform.OS === 'web' ? 16 : 14,
-    borderColor: '#CBD5E1',
+    width: '100%',
+    height: 50,
     borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: 'rgba(249, 250, 251, 0.8)',
+    color: '#1F2937',
+  },
+  button: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
   },
   errorContainer: {
-    backgroundColor: '#fee2e2',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    width: '100%',
   },
   errorText: {
-    color: '#b91c1c',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#DC2626',
+    fontSize: 15,
+    textAlign: 'center',
   },
   checkboxContainer: {
-    marginBottom: 18,
+    width: '100%',
+    marginBottom: 20,
   },
   checkbox: {
     flexDirection: 'row',
@@ -342,65 +322,64 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderWidth: 2,
-    borderColor: '#64748B',
-    borderRadius: 4,
-    marginRight: 10,
+    borderColor: '#D1D5DB',
+    borderRadius: 5,
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
   checkboxCheckmark: {
-    color: '#fff',
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   checkboxText: {
-    color: '#64748B',
-    fontSize: 14,
+    fontSize: 15,
+    color: '#4B5563',
   },
   politicasLink: {
+    color: '#4F46E5',
+    fontWeight: '600',
     textDecorationLine: 'underline',
-    color: '#2563EB',
-  },
-  button: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: Platform.OS === 'web' ? 18 : 16,
-    fontWeight: '700',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    marginHorizontal: 10,
-    color: '#94A3B8',
+    color: '#6B7280',
+    paddingHorizontal: 10,
+    fontSize: 14,
+    fontWeight: '500',
   },
   secondaryButton: {
-    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#4F46E5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: '#2563EB',
-    fontWeight: '600',
+    color: '#4F46E5',
+    fontSize: 16,
+    fontWeight: '700',
   },
   contentContainerStyle: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingBottom: 40,
+    paddingVertical: 40,
+    paddingHorizontal: 10,
   },
 });

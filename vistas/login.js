@@ -19,7 +19,7 @@ export default function Login({ navigation }) {
     setError('');
 
     try {
-      const response = await fetch('https://tfgalvaroramirezmartin-production.up.railway.app/login', {
+      const response = await fetch('http://localhost:3001/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

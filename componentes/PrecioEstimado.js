@@ -12,7 +12,7 @@ const PrecioEstimado = ({ pista, horaInicio, horaFin }) => {
       setLoading(true);
       try {
         const response = await fetch(
-          `https://tfg-alvaro-ramirez-martin.up.railway.app/reservas/precio-estimado?pista=${encodeURIComponent(
+          `http://localhost:3001/reservas/precio-estimado?pista=${encodeURIComponent(
             pista
           )}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
         );

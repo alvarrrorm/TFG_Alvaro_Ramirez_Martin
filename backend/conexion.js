@@ -1,24 +1,26 @@
-// db.js
 const mysql = require('mysql2');
 
+// Crear conexión normal
 const conexion = mysql.createConnection({
-  host: 'mysql.railway.internal',
+  host: 'localhost',
   user: 'root',
-  password: 'xdLWuguiQjCNZrEQffZEpJbBjSeRwYlr',
+  password: 'qwerty', //
   database: 'gestion_polideportivo',
-  port: process.env.DB_PORT || 3306,
+  port: 3306,
   charset: 'utf8mb4',
 });
 
+// Conectar a la base de datos
 conexion.connect((err) => {
   if (err) {
-    console.error('❌ Error al conectar con la base de datos:', err);
+    console.error('Error al conectar con la base de datos:', err);
   } else {
-    console.log('✅ Conectado correctamente a la base de datos');
+    console.log('Conectado correctamente a la base de datos');
   }
 });
 
+
 module.exports = {
   conexion,
-  promiseConexion: conexion.promise(),
+  promiseConexion: conexion.promise()
 };

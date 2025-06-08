@@ -1,12 +1,12 @@
 const mysql = require('mysql2');
 
-// Crear conexión normal
+// Crear conexión usando variables de entorno
 const conexion = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'qwerty', //
-  database: 'gestion_polideportivo',
-  port: 3306,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'gestion_polideportivo',
+  port: process.env.DB_PORT || 3306,
   charset: 'utf8mb4',
 });
 
@@ -18,7 +18,6 @@ conexion.connect((err) => {
     console.log('Conectado correctamente a la base de datos');
   }
 });
-
 
 module.exports = {
   conexion,

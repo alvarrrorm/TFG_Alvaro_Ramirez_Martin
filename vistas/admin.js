@@ -109,54 +109,55 @@ const fetchData = useCallback(async () => {
   }));
 
   // Agregar nueva pista
-  const agregarPista = async () => {
-    setErrorNombreRepetido('');
-    if (!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio) {
-      Alert.alert('Error', 'Nombre, tipo y precio son obligatorios');
+const agregarPista = async () => {
+  setErrorNombreRepetido('');
+  if (!nuevoNombre.trim() || !nuevoTipo || !nuevoPrecio) {
+    Alert.alert('Error', 'Nombre, tipo y precio son obligatorios');
+    return;
+  }
+
+  const precioNumerico = parseFloat(nuevoPrecio);
+  if (isNaN(precioNumerico)) {
+    Alert.alert('Error', 'El precio debe ser un número válido');
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        nombre: nuevoNombre.trim(),
+        tipo: nuevoTipo,
+        precio: precioNumerico,
+      }),
+    });
+
+    const responseData = await response.json();
+
+    if (response.status === 409) {
+      setErrorNombreRepetido(responseData.error || 'Ya existe una pista con ese nombre.');
       return;
     }
 
-    const precioNumerico = parseFloat(nuevoPrecio);
-    if (isNaN(precioNumerico)) {
-      Alert.alert('Error', 'El precio debe ser un número válido');
-      return;
+    if (!response.ok) {
+      throw new Error(responseData.error || `Error ${response.status}`);
     }
 
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nombre: nuevoNombre.trim(),
-          tipo: nuevoTipo,
-          precio: precioNumerico,
-        }),
-      });
-
-      const responseData = await response.json();
-
-      if (response.status === 409) {
-        setErrorNombreRepetido(responseData.message || 'Ya existe una pista con ese nombre.');
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `Error ${response.status}`);
-      }
-
-      setPistas((prevPistas) => [...prevPistas, responseData]);
-      setNuevoNombre('');
-      setNuevoTipo(null);
-      setNuevoPrecio('');
-      setOpen(false);
-      Alert.alert('Éxito', 'Pista agregada correctamente');
-    } catch (error) {
-      console.error('Error al agregar pista:', error);
-      Alert.alert('Error', error.message || 'No se pudo agregar la pista');
-    }
-  };
+    // Aquí está el cambio importante - usamos responseData.data
+    setPistas((prevPistas) => [...prevPistas, responseData.data]);
+    setNuevoNombre('');
+    setNuevoTipo(null);
+    setNuevoPrecio('');
+    setOpen(false);
+    Alert.alert('Éxito', 'Pista agregada correctamente');
+  } catch (error) {
+    console.error('Error al agregar pista:', error);
+    Alert.alert('Error', error.message || 'No se pudo agregar la pista');
+  }
+};
 
   // Eliminar pista
   const eliminarPista = (id) => {
@@ -242,34 +243,39 @@ const fetchData = useCallback(async () => {
     }
   };
 
-  // Cambiar estado de mantenimiento
-  const toggleMantenimiento = async (id) => {
-    try {
-      const pista = pistas.find(p => p.id === id);
-      if (!pista) return;
+const toggleMantenimiento = async (id) => {
+  try {
+    const pista = pistas.find(p => p.id === id);
+    if (!pista) return;
 
-      const response = await fetch(`${API_URL}/${id}/disponible`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          enMantenimiento: !pista.enMantenimiento
-        }),
-      });
+    const response = await fetch(`${API_URL}/${id}/mantenimiento`, {  // Cambiado a /mantenimiento
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        enMantenimiento: !pista.enMantenimiento
+      }),
+    });
 
-      if (!response.ok) {
-        throw new Error('Error al actualizar el estado');
-      }
-
-      const pistaActualizada = await response.json();
-      setPistas(pistas.map(p => p.id === id ? pistaActualizada : p));
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
-      Alert.alert('Error', error.message || 'No se pudo cambiar el estado');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al actualizar el estado');
     }
-  };
 
+    const responseData = await response.json();
+    
+    // Actualiza el estado local con los datos devueltos por el backend
+    setPistas(prevPistas => 
+      prevPistas.map(p => 
+        p.id === id ? { ...p, enMantenimiento: responseData.data.enMantenimiento } : p
+      )
+    );
+  } catch (error) {
+    console.error('Error al cambiar estado:', error);
+    Alert.alert('Error', error.message || 'No se pudo cambiar el estado');
+  }
+};
   // Abrir modal para editar precio
   const abrirModalEditar = (pista) => {
     setPistaEditando(pista);

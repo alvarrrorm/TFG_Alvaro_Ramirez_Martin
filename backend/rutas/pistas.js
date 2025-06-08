@@ -28,11 +28,16 @@ router.get('/', (req, res) => {
   });
 });
 
-// Obtener pistas disponibles
+// Obtener pistas disponibles (no en mantenimiento)
 router.get('/disponibles', (req, res) => {
   const conexion = req.app.get('conexion');
 
-  conexion.query('SELECT * FROM pistas WHERE disponible = 1 ORDER BY id', (error, results) => {
+  conexion.query(`
+    SELECT id, nombre, tipo, precio 
+    FROM pistas 
+    WHERE disponible = 1
+    ORDER BY tipo, nombre
+  `, (error, results) => {
     if (error) {
       console.error('Error al obtener pistas disponibles:', error);
       return res.status(500).json({ 
@@ -43,14 +48,7 @@ router.get('/disponibles', (req, res) => {
 
     res.json({
       success: true,
-      data: results.map(pista => ({
-        id: pista.id,
-        nombre: pista.nombre,
-        tipo: pista.tipo,
-        precio: pista.precio,
-        disponible: true,
-        enMantenimiento: false
-      }))
+      data: results
     });
   });
 });

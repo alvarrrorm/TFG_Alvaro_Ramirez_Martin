@@ -27,10 +27,13 @@ const app = express();
 app.set('conexion', conexion);
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8081'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type']
+  origin: ['http://localhost:3000', 'http://localhost:8081', 'https://tfgalvaroramirezmartin.netlify.app'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
+
+
 
 // Middlewares para parsear JSON y datos urlencoded, debe ir antes de las rutas
 app.use(express.json());

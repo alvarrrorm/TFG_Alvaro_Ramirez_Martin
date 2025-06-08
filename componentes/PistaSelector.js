@@ -10,15 +10,18 @@ export default function PistaSelector({ value, onChange }) {
     const cargarPistas = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:3001/pistas');
-        if (!response.ok) throw new Error('Error en la respuesta de pistas');
+        const response = await fetch('http://localhost:3001/pistas/disponibles');
+        if (!response.ok) throw new Error('Error al cargar pistas disponibles');
 
         const data = await response.json();
-        // Filtramos pistas disponibles (disponible === 1)
-        const pistasDisponibles = data.filter((p) => p.disponible === 1);
-        setPistas(pistasDisponibles);
+        if (data.success) {
+          setPistas(data.data); // Usamos directamente los datos ya filtrados del backend
+        } else {
+          throw new Error(data.error || 'Error en los datos recibidos');
+        }
       } catch (error) {
-        Alert.alert('Error', 'No se pudieron cargar las pistas');
+        Alert.alert('Error', error.message || 'No se pudieron cargar las pistas disponibles');
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -34,9 +37,7 @@ export default function PistaSelector({ value, onChange }) {
     <View style={styles.dropdown}>
       <Picker
         selectedValue={value || ''}
-        onValueChange={(id) => {
-          onChange(id);
-        }}
+        onValueChange={(id) => onChange(id)}
         dropdownIconColor="#1976D2"
         style={styles.picker}
       >

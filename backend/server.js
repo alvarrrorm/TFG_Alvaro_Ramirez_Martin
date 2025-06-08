@@ -31,7 +31,7 @@ app.set('conexion', conexion);
 // Middleware CORS - debe ir antes que las rutas
 app.use(
   cors({
-    origin: '*', // Para producción es mejor limitar a orígenes confiables
+    origin: 'https://tfgalvaroramirezmartin-production.up.railway.app',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })

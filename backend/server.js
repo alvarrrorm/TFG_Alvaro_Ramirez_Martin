@@ -32,7 +32,9 @@ app.set('conexion', conexion);
 app.use(cors({
   origin: [
    
-    'https://tfgalvaroramirezmartin.netlify.app'
+    'https://tfgalvaroramirezmartin.netlify.app',
+        'https://tfgalvaroramirezmartin-production.up.railway.app'  // Agrega el dominio de frontend actual en Railway
+
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

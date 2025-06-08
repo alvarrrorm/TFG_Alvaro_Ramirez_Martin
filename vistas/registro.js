@@ -54,7 +54,7 @@ export default function Register({ navigation }) {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/registro', {
+const response = await fetch('https://tfg-alvaro-ramirez-martin.up.railway.app/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, correo, usuario, dni, pass, pass_2, telefono, clave_admin: claveAdmin })

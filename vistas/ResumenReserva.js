@@ -56,7 +56,7 @@ const procesarPago = async () => {
   try {
     console.log('Enviando pago para reserva ID:', reserva.id);
     
-    const response = await fetch(`http://localhost:3001/reservas/${reserva.id}/pagar`, {
+    const response = await fetch(`https://tfg-alvaro-ramirez-martin.up.railway.app/reservas/${reserva.id}/pagar`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

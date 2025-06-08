@@ -53,7 +53,7 @@ const MisReservas = () => {
     }
     
     console.log(`Buscando reservas para DNI: ${dni}`);
-    const response = await fetch(`http://localhost:3001/reservas?dni_usuario=${dni}`);
+const response = await fetch(`https://tfg-alvaro-ramirez-martin.up.railway.app/reservas?dni_usuario=${dni}`);
     
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`);
@@ -97,7 +97,7 @@ const MisReservas = () => {
 
   const cancelarReserva = async (idReserva) => {
     try {
-      const response = await fetch(`http://localhost:3001/reservas/${idReserva}`, {
+      const response = await fetch(`https://tfg-alvaro-ramirez-martin.up.railway.app/reservas/${idReserva}`, {
         method: 'DELETE'
       });
 

@@ -10,7 +10,7 @@ export default function PistaSelector({ value, onChange }) {
     const cargarPistas = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:3001/pistas/disponibles');
+        const response = await fetch('https://tfg-alvaro-ramirez-martin.up.railway.app/pistas/disponibles');
         if (!response.ok) throw new Error('Error al cargar pistas disponibles');
 
         const data = await response.json();

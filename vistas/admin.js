@@ -21,8 +21,8 @@ import { useUser } from '../contexto/UserContex';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 
-const API_URL = 'http://localhost:3001/pistas';
-const RESERVAS_URL = 'http://localhost:3001/reservas';
+const API_URL = 'https://tfg-alvaro-ramirez-martin.up.railway.app/pistas';
+const RESERVAS_URL = 'https://tfg-alvaro-ramirez-martin.up.railway.app/reservas';
 
 export default function AdminPanel({ navigation }) {
   const { usuario } = useUser();

@@ -41,7 +41,7 @@ useEffect(() => {
   const fetchPistas = async () => {
     setLoadingPistas(true);
     try {
-      const res = await fetch('http://localhost:3001/pistas');
+      const res = await fetch('https://tfg-alvaro-ramirez-martin.up.railway.app/pistas');
       if (!res.ok) throw new Error('Failed to fetch pistas');
       const response = await res.json();
       
@@ -106,7 +106,7 @@ useEffect(() => {
 
   setLoading(true);
   try {
-    const res = await fetch('http://localhost:3001/reservas', {
+    const res = await fetch('https://tfg-alvaro-ramirez-martin.up.railway.app/reservas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
